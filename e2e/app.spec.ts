@@ -8,7 +8,7 @@ const userContent = (body: Record<string, unknown>): Block[] =>
 
 test('first launch asks for API keys', async ({ harness }) => {
   const { win } = await harness.launch()
-  await expect(win.locator('#banner')).toContainText('add your API keys')
+  await expect(win.locator('#banner')).toContainText('Add your API keys')
   await ask(win, 'Hello?')
   await expect(win.locator('.exchange .a').last()).toHaveText('Add your Anthropic API key in Settings.')
   expect(harness.mock.messages).toHaveLength(0)
@@ -117,7 +117,7 @@ test('a spoken question is transcribed and answered', async ({ harness }) => {
   harness.mock.transcriptTexts.push('What does this error mean?')
   await sendHotkey(app, 'voice-question')
   await expect(win.locator('#btn-voice')).toHaveClass(/active/)
-  await expect(win.locator('#banner')).toContainText('Listening to your question')
+  await expect(win.locator('#banner')).toContainText('Listening… press')
   await win.waitForTimeout(1500)
   await sendHotkey(app, 'voice-question')
 
@@ -155,7 +155,8 @@ test('settings are saved and survive a restart', async ({ harness }) => {
 
 test('the reply-mode switch is saved', async ({ harness }) => {
   const { win } = await harness.launch({})
-  await win.selectOption('#quick-reply-mode', 'both')
+  await win.locator('#reply-mode label', { hasText: 'Both' }).click()
+  await expect(win.locator('#reply-mode input[value=both]')).toBeChecked()
   await expect
     .poll(() => JSON.parse(readFileSync(join(harness.userData, 'settings.json'), 'utf8')).replyMode)
     .toBe('both')
@@ -179,12 +180,15 @@ test('the session can be saved as Markdown', async ({ harness }) => {
     dialog.showSaveDialog = (async () => ({ canceled: false, filePath: path })) as typeof dialog.showSaveDialog
   }, target)
 
+  await win.click('#btn-more')
   await win.click('#btn-export')
-  await expect(win.locator('#banner')).toHaveText('Nothing to save yet.')
+  await expect(win.locator('#banner-text')).toHaveText('Nothing to save yet.')
+  await expect(win.locator('#menu')).toBeHidden()
 
   harness.mock.claudeReplies.push({ text: 'Saved answer.' })
   await ask(win, 'Save this')
   await expect(win.locator('.exchange .a')).toHaveText('Saved answer.')
+  await win.click('#btn-more')
   await win.click('#btn-export')
   await expect(win.locator('#banner')).toContainText('Saved to')
   const md = readFileSync(target, 'utf8')
@@ -197,6 +201,7 @@ test('clear removes answers and transcript', async ({ harness }) => {
   await ask(win, 'Something')
   await expect(win.locator('.exchange .a strong')).toBeVisible()
   win.once('dialog', (d) => void d.accept())
+  await win.click('#btn-more')
   await win.click('#btn-clear')
   await expect(win.locator('.exchange')).toHaveCount(0)
   await expect(win.locator('#empty')).toBeVisible()
@@ -224,4 +229,49 @@ test('the overlay position is remembered', async ({ harness }) => {
   const second = await harness.launch()
   const bounds = await second.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds())
   expect(bounds).toMatchObject({ x: 120, y: 90, width: 500, height: 640 })
+})
+
+test('the menu opens and closes cleanly', async ({ harness }) => {
+  const { win } = await harness.launch({})
+  await expect(win.locator('#menu')).toBeHidden()
+  await win.click('#btn-more')
+  await expect(win.locator('#menu')).toBeVisible()
+  await expect(win.locator('#btn-more')).toHaveAttribute('aria-expanded', 'true')
+  // Clicking elsewhere closes it.
+  await win.click('#answers')
+  await expect(win.locator('#menu')).toBeHidden()
+  // Escape closes it without hiding the overlay.
+  await win.click('#btn-more')
+  await win.keyboard.press('Escape')
+  await expect(win.locator('#menu')).toBeHidden()
+  await expect(win.locator('#question')).toBeVisible()
+})
+
+test('info notices fade on their own; errors stay until dismissed', async ({ harness }) => {
+  const { win } = await harness.launch({ sttApiKey: '' })
+  await win.click('#btn-listen')
+  await expect(win.locator('#banner')).toHaveClass(/error/)
+  await win.waitForTimeout(6500)
+  await expect(win.locator('#banner')).toBeVisible()
+  await win.click('#banner-close')
+  await expect(win.locator('#banner')).toBeHidden()
+
+  await win.click('#btn-more')
+  await win.click('#btn-export')
+  await expect(win.locator('#banner-text')).toHaveText('Nothing to save yet.')
+  await expect(win.locator('#banner')).toBeHidden({ timeout: 8000 })
+})
+
+test('theme follows the setting', async ({ harness }) => {
+  const { win } = await harness.launch({ theme: 'light' })
+  await expect(win.locator('html')).toHaveAttribute('data-theme', 'light')
+  const bg = await win.locator('.shell').evaluate((el) => getComputedStyle(el).backgroundColor)
+  expect(bg).toBe('rgb(255, 255, 255)')
+
+  await win.click('#btn-settings')
+  await win.selectOption('select[name=theme]', 'dark')
+  await win.click('#settings-form button[type=submit]')
+  await expect(win.locator('html')).toHaveAttribute('data-theme', 'dark')
+  const dark = await win.locator('.shell').evaluate((el) => getComputedStyle(el).backgroundColor)
+  expect(dark).toBe('rgb(11, 11, 11)')
 })

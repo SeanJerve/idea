@@ -76,6 +76,7 @@ export interface Settings {
   windowBounds: Bounds | null
   hotkeys: Record<HotkeyAction, string>
   launchAtLogin: boolean
+  theme: 'system' | 'dark' | 'light'
 }
 
 export interface Bounds {
@@ -113,7 +114,8 @@ export const DEFAULT_SETTINGS: Settings = {
   customInstructions: '',
   windowBounds: null,
   hotkeys: { ...DEFAULT_HOTKEYS },
-  launchAtLogin: false
+  launchAtLogin: false,
+  theme: 'system'
 }
 
 export const STT_PRESETS: Record<string, Pick<Settings, 'sttBaseUrl' | 'sttModel'>> = {

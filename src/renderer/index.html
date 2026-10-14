@@ -12,68 +12,75 @@
     <div class="shell">
       <header class="titlebar">
         <span class="dot" id="listen-dot" title="Not listening"></span>
-        <span class="title">Screen Copilot</span>
+        <span class="title">Copilot</span>
         <span class="spacer"></span>
-        <button class="icon" id="btn-listen" title="Start listening" aria-label="Toggle listening">
-          <svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" /><path d="M19 11a7 7 0 0 1-14 0M12 18v3" /></svg>
+        <button class="icon" id="btn-listen" title="Start listening" aria-label="Start or stop listening">
+          <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" /></svg>
         </button>
-        <button class="icon" id="btn-export" title="Save transcript and answers" aria-label="Save session">
-          <svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>
-        </button>
-        <button class="icon" id="btn-clear" title="Clear transcript and answers" aria-label="Clear session">
-          <svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+        <button class="icon" id="btn-more" title="More" aria-label="More" aria-haspopup="menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="18" cy="12" r="1" /></svg>
         </button>
         <button class="icon" id="btn-settings" title="Settings" aria-label="Settings">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" /></svg>
+          <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>
         </button>
         <button class="icon" id="btn-hide" title="Hide (Esc)" aria-label="Hide">
-          <svg viewBox="0 0 24 24"><path d="M5 12h14" /></svg>
+          <svg viewBox="0 0 24 24"><path d="M6 12h12" /></svg>
         </button>
+        <div class="menu" id="menu" role="menu" hidden>
+          <button type="button" role="menuitem" id="btn-export">Save session…</button>
+          <button type="button" role="menuitem" id="btn-clear">Clear</button>
+          <hr />
+          <button type="button" role="menuitem" id="btn-quit">Quit</button>
+        </div>
       </header>
 
       <main id="view-main" class="view">
         <details class="transcript-box" id="transcript-box" open>
           <summary>
-            Live transcript
-            <span class="meters"><span class="meter" id="meter-me" title="Mic"></span><span class="meter them" id="meter-them" title="System audio"></span></span>
+            <span>Transcript</span>
+            <span class="meters" aria-hidden="true"><span class="meter" id="meter-me" title="Microphone"></span><span class="meter" id="meter-them" title="Computer audio"></span></span>
           </summary>
-          <div class="transcript" id="transcript">
-            <p class="hint">Press the mic button or Ctrl+Shift+L to start listening.</p>
-          </div>
+          <div class="transcript" id="transcript"></div>
         </details>
 
         <section class="answers" id="answers" aria-live="polite">
           <div class="empty" id="empty">
-            <p><b>Ask about anything on your screen or in the conversation.</b></p>
-            <ul id="shortcut-list"></ul>
-            <p class="tip">Tip: paste or drop an image, or snip an area of the screen, to ask about just that.</p>
+            <p class="lead">Ask about anything on your screen.</p>
+            <p class="mode-hint" id="mode-hint"></p>
+            <ul class="shortcuts" id="shortcut-list"></ul>
+            <p class="aside">Paste or drop an image to ask about it instead.</p>
           </div>
         </section>
 
-        <div class="banner" id="banner" hidden></div>
+        <div class="notice" id="banner" role="status" hidden>
+          <span id="banner-text"></span>
+          <button type="button" class="dismiss" id="banner-close" aria-label="Dismiss">
+            <svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17" /></svg>
+          </button>
+        </div>
 
         <footer class="composer">
-          <div class="mode-row">
-            <select id="mode-select" aria-label="Mode" title="What you're doing"></select>
-            <span class="mode-hint" id="mode-hint"></span>
-            <select id="quick-reply-mode" aria-label="Reply mode" title="How answers are delivered">
-              <option value="text">Show</option>
-              <option value="voice">Speak</option>
-              <option value="both">Show + speak</option>
-            </select>
+          <div class="bar">
+            <span class="select bare" id="mode-picker"><span class="label" id="mode-label">General</span><select id="mode-select" aria-label="Mode"></select></span>
+            <span class="spacer"></span>
+            <div class="segmented" id="reply-mode" role="radiogroup" aria-label="Reply">
+              <label title="Show answers"><input type="radio" name="reply" value="text" /><span>Show</span></label>
+              <label title="Read answers aloud"><input type="radio" name="reply" value="voice" /><span>Speak</span></label>
+              <label title="Show and read aloud"><input type="radio" name="reply" value="both" /><span>Both</span></label>
+            </div>
           </div>
-          <div class="quick" id="actions"></div>
+          <div class="actions" id="actions"></div>
           <div class="attachments" id="attachments" hidden></div>
           <form id="ask-form" class="ask">
             <button type="button" class="icon" id="btn-voice" title="Ask out loud" aria-label="Ask out loud">
-              <svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" /><path d="M19 11a7 7 0 0 1-14 0M12 18v3" /></svg>
+              <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" /></svg>
             </button>
             <button type="button" class="icon" id="btn-snip" title="Ask about an area of the screen" aria-label="Select an area of the screen">
-              <svg viewBox="0 0 24 24"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4" /></svg>
+              <svg viewBox="0 0 24 24"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4" /></svg>
             </button>
-            <textarea id="question" rows="1" placeholder="Ask about your screen…"></textarea>
-            <button type="submit" class="icon primary" id="btn-send" title="Send (Enter)" aria-label="Send">
-              <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            <textarea id="question" rows="1" placeholder="Ask about your screen"></textarea>
+            <button type="submit" class="send" id="btn-send" title="Send (Enter)" aria-label="Send">
+              <svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6" /></svg>
             </button>
           </form>
         </footer>
@@ -81,67 +88,86 @@
 
       <section id="view-settings" class="view settings" hidden>
         <form id="settings-form">
-          <h2>Claude</h2>
-          <label>Anthropic API key <input type="password" name="anthropicApiKey" autocomplete="off" placeholder="sk-ant-…" /></label>
-          <label>Model <select name="model" id="model-select"></select></label>
-          <label>Answer language <input name="replyLanguage" list="languages" placeholder="Same as mine" /></label>
-          <datalist id="languages">
-            <option value="English"></option><option value="Tagalog"></option><option value="Spanish"></option>
-            <option value="French"></option><option value="German"></option><option value="Japanese"></option>
-            <option value="Korean"></option><option value="Chinese (Simplified)"></option><option value="Portuguese"></option>
-            <option value="Hindi"></option><option value="Arabic"></option><option value="Indonesian"></option>
-            <option value="Vietnamese"></option><option value="Italian"></option>
-          </datalist>
-          <label>Live translation model <select name="translateModel" id="translate-model-select"></select></label>
-          <label>Effort
-            <select name="effort">
-              <option value="low">Low (fastest)</option>
-              <option value="medium">Medium</option>
-              <option value="high">High (most thorough)</option>
-            </select>
-          </label>
+          <fieldset>
+            <legend>Claude</legend>
+            <label class="field">API key <input type="password" name="anthropicApiKey" autocomplete="off" spellcheck="false" placeholder="sk-ant-…" /></label>
+            <label class="field">Model <span class="select"><select name="model" id="model-select"></select></span></label>
+            <label class="field">Effort
+              <span class="select"><select name="effort">
+                <option value="low">Low — fastest</option>
+                <option value="medium">Medium</option>
+                <option value="high">High — most thorough</option>
+              </select></span>
+            </label>
+            <label class="field">Answer language <input name="replyLanguage" list="languages" placeholder="Same as mine" /></label>
+            <datalist id="languages">
+              <option value="English"></option><option value="Tagalog"></option><option value="Spanish"></option>
+              <option value="French"></option><option value="German"></option><option value="Japanese"></option>
+              <option value="Korean"></option><option value="Chinese (Simplified)"></option><option value="Portuguese"></option>
+              <option value="Hindi"></option><option value="Arabic"></option><option value="Indonesian"></option>
+              <option value="Vietnamese"></option><option value="Italian"></option>
+            </datalist>
+            <label class="field">Translation model <span class="select"><select name="translateModel" id="translate-model-select"></select></span></label>
+            <label class="field">Extra instructions <textarea name="customInstructions" rows="2" placeholder="e.g. I'm a frontend developer."></textarea></label>
+          </fieldset>
 
-          <h2>Speech to text</h2>
-          <label>Provider <select id="stt-preset"></select></label>
-          <label>API base URL <input name="sttBaseUrl" /></label>
-          <label>API key <input type="password" name="sttApiKey" autocomplete="off" /></label>
-          <label>Model <input name="sttModel" /></label>
-          <label>Language <input name="sttLanguage" placeholder="auto (or en, es, tl…)" /></label>
+          <fieldset>
+            <legend>Speech to text</legend>
+            <label class="field">Provider <span class="select"><select id="stt-preset"></select></span></label>
+            <label class="field">API key <input type="password" name="sttApiKey" autocomplete="off" spellcheck="false" /></label>
+            <label class="field">Base URL <input name="sttBaseUrl" spellcheck="false" /></label>
+            <label class="field">Model <input name="sttModel" spellcheck="false" /></label>
+            <label class="field">Spoken language <input name="sttLanguage" placeholder="Detect (or en, es, tl…)" /></label>
+          </fieldset>
 
-          <h2>Listening</h2>
-          <label class="check"><input type="checkbox" name="captureMic" /> My microphone ("Me")</label>
-          <label class="check"><input type="checkbox" name="captureSystem" /> Computer audio ("Them")</label>
-          <label class="check"><input type="checkbox" name="includeScreenshot" /> Send a screenshot with each question</label>
-          <label class="check"><input type="checkbox" name="autoSuggest" /> Suggest a reply when they ask me a question</label>
-          <label>Transcript sent with each question (minutes) <input type="number" name="contextMinutes" min="1" max="60" /></label>
+          <fieldset>
+            <legend>Listening</legend>
+            <label class="toggle">Microphone <input type="checkbox" name="captureMic" /></label>
+            <label class="toggle">Computer audio <input type="checkbox" name="captureSystem" /></label>
+            <label class="toggle">Include a screenshot <input type="checkbox" name="includeScreenshot" /></label>
+            <label class="toggle">Suggest replies to questions <input type="checkbox" name="autoSuggest" /></label>
+            <label class="field inline">Transcript per question <span class="unit"><input type="number" name="contextMinutes" min="1" max="60" /> min</span></label>
+          </fieldset>
 
-          <h2>Replies</h2>
-          <label>Reply mode
-            <select name="replyMode">
-              <option value="text">Show in overlay</option>
-              <option value="voice">Speak out loud</option>
-              <option value="both">Show and speak</option>
-            </select>
-          </label>
-          <label>Voice <select name="voiceName" id="voice-select"></select></label>
-          <label>Speaking rate <input type="number" name="voiceRate" min="0.5" max="2" step="0.1" /></label>
-          <label>Extra instructions <textarea name="customInstructions" rows="3" placeholder="e.g. I'm a frontend developer. Answer in English."></textarea></label>
+          <fieldset>
+            <legend>Voice</legend>
+            <label class="field">Answers
+              <span class="select"><select name="replyMode">
+                <option value="text">Show</option>
+                <option value="voice">Speak</option>
+                <option value="both">Show and speak</option>
+              </select></span>
+            </label>
+            <label class="field">Voice <span class="select"><select name="voiceName" id="voice-select"></select></span></label>
+            <label class="field inline">Speed <span class="unit"><input type="number" name="voiceRate" min="0.5" max="2" step="0.1" /> ×</span></label>
+          </fieldset>
 
-          <h2>Window</h2>
-          <label class="check"><input type="checkbox" name="hideFromCapture" /> Hide overlay from screenshots and screen sharing</label>
-          <label>Opacity <input type="range" name="overlayOpacity" min="0.4" max="1" step="0.02" /></label>
-          <label class="check"><input type="checkbox" name="launchAtLogin" /> Start with Windows (in the tray)</label>
+          <fieldset>
+            <legend>Window</legend>
+            <label class="field">Theme
+              <span class="select"><select name="theme">
+                <option value="system">Match Windows</option>
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+              </select></span>
+            </label>
+            <label class="field">Opacity <input type="range" name="overlayOpacity" min="0.5" max="1" step="0.02" /></label>
+            <label class="toggle">Hide from screen sharing <input type="checkbox" name="hideFromCapture" /></label>
+            <label class="toggle">Start with Windows <input type="checkbox" name="launchAtLogin" /></label>
+          </fieldset>
 
-          <h2>Shortcuts</h2>
-          <p class="hint">Click a shortcut and press new keys. Backspace turns it off.</p>
-          <div id="hotkey-rows"></div>
+          <fieldset>
+            <legend>Shortcuts</legend>
+            <p class="help">Click a shortcut, then press the new keys. Backspace turns it off.</p>
+            <div id="hotkey-rows"></div>
+          </fieldset>
 
-          <p class="settings-error" id="settings-error" role="alert" hidden></p>
-          <div class="actions">
-            <button type="button" id="btn-quit" class="danger">Quit app</button>
-            <span class="spacer"></span>
-            <button type="button" id="btn-settings-cancel">Cancel</button>
-            <button type="submit" class="primary">Save</button>
+          <div class="settings-footer">
+            <p class="settings-error" id="settings-error" role="alert" hidden></p>
+            <div class="buttons">
+              <button type="button" class="text" id="btn-settings-cancel">Cancel</button>
+              <button type="submit" class="solid">Save</button>
+            </div>
           </div>
         </form>
       </section>

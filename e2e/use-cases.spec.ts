@@ -190,7 +190,7 @@ test('voice mode speaks the answer and tucks the text away', async ({ harness })
   harness.mock.claudeReplies.push({ text: 'First sentence. Second sentence.' })
   await ask(win, 'Talk to me')
   await expect.poll(spoken).toBe(2)
-  await expect(win.locator('.exchange details summary')).toHaveText('Spoken answer (show text)')
+  await expect(win.locator('.exchange details summary')).toHaveText('Spoken · show text')
   expect(requestText(harness.mock.messages[0])).toContain('spoken aloud')
 })
 
@@ -206,7 +206,7 @@ test.describe('asking about part of the screen or an image', () => {
     await snip.mouse.up()
 
     await expect(win.locator('#attachments .chip')).toHaveCount(1)
-    await expect(win.locator('#question')).toHaveAttribute('placeholder', 'Ask about the attached image…')
+    await expect(win.locator('#question')).toHaveAttribute('placeholder', 'Ask about the image')
     await ask(win, 'What does this chart show?')
     await expect(win.locator('.exchange .q').last()).toContainText('(+1 image)')
     await expect(win.locator('.exchange .a strong')).toBeVisible()
@@ -234,7 +234,7 @@ test.describe('asking about part of the screen or an image', () => {
     await snip.mouse.click(200, 200)
     expect(app.windows().length).toBe(2)
     // The window may close on button-down (Linux) or button-up (Windows).
-    await snip.mouse.down({ button: 'right' })
+    await snip.mouse.down({ button: 'right' }).catch(() => {})
     await snip.mouse.up({ button: 'right' }).catch(() => {})
     await expect.poll(() => app.windows().length).toBe(1)
     await expect(win.locator('#attachments .chip')).toHaveCount(0)

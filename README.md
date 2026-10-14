@@ -43,7 +43,7 @@ Pick a **mode** at the bottom of the overlay. Each one tunes the answers and giv
 - **Copy, save, clear.** Copy any answer, save the whole session (transcript + answers) as a Markdown file, or wipe it.
 - **Remembers its place.** The overlay reopens where you left it (and comes back on screen if that monitor is gone).
 - **Replies your way.** Show them in the overlay, speak them with Windows' built-in voices, or both.
-- **Stays out of the way.** The overlay floats on top and is draggable and resizable. It is left out of its own screenshots and, if you choose, out of screen shares.
+- **Quiet, black-and-white design.** Follows Windows light or dark mode (or pick one in Settings). The overlay floats on top and is draggable and resizable. It is left out of its own screenshots and, if you choose, out of screen shares.
 
 ## Hotkeys
 
@@ -72,7 +72,7 @@ All shortcuts can be changed in Settings → Shortcuts. The defaults avoid Micro
    ```
    npm run dev
    ```
-4. Click the gear icon and add:
+4. Open Settings (the sliders icon at the top) and add:
    - an **Anthropic API key** (https://console.anthropic.com), for answers
    - a **speech-to-text key**, for transcription. OpenAI (https://platform.openai.com) is the default. Groq (https://console.groq.com) is cheaper and very fast; choose it under *Provider*.
 

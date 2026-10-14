@@ -1,6 +1,7 @@
 const api = window.copilot
 const sel = document.getElementById('sel') as HTMLDivElement
 const shot = document.getElementById('shot') as HTMLImageElement
+const size = document.getElementById('size') as HTMLDivElement
 
 let start: { x: number; y: number } | null = null
 let done = false
@@ -17,11 +18,28 @@ function finish(selection: { x: number; y: number; width: number; height: number
 
 function draw(x: number, y: number): void {
   if (!start) return
+  document.body.classList.add('dragging')
   sel.classList.remove('empty')
-  sel.style.left = `${Math.min(start.x, x)}px`
-  sel.style.top = `${Math.min(start.y, y)}px`
-  sel.style.width = `${Math.abs(x - start.x)}px`
-  sel.style.height = `${Math.abs(y - start.y)}px`
+  const left = Math.min(start.x, x)
+  const top = Math.min(start.y, y)
+  const w = Math.abs(x - start.x)
+  const h = Math.abs(y - start.y)
+  sel.style.left = `${left}px`
+  sel.style.top = `${top}px`
+  sel.style.width = `${w}px`
+  sel.style.height = `${h}px`
+  // Size readout sits under the selection, or inside it near the bottom edge of the screen.
+  size.hidden = w < 8 || h < 8
+  size.textContent = `${Math.round(w * devicePixelRatio)} × ${Math.round(h * devicePixelRatio)}`
+  size.style.left = `${left}px`
+  size.style.top = `${top + h + 26 > window.innerHeight ? top + h - 24 : top + h + 6}px`
+}
+
+function reset(): void {
+  document.body.classList.remove('dragging')
+  sel.className = 'empty'
+  sel.removeAttribute('style')
+  size.hidden = true
 }
 
 window.addEventListener('mousedown', (e) => {
@@ -36,8 +54,7 @@ window.addEventListener('mouseup', (e) => {
   start = null
   // A plain click (no drag) is ignored so a stray click doesn't send a tiny image.
   if (Math.abs(selection.width) < 8 || Math.abs(selection.height) < 8) {
-    sel.className = 'empty'
-    sel.removeAttribute('style')
+    reset()
     return
   }
   finish(selection)

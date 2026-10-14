@@ -75,14 +75,23 @@ const voice = new VoiceReply(
 
 // ---------- banner ----------
 
-function showBanner(text: string, kind: 'info' | 'error' = 'info'): void {
+let bannerTimer: ReturnType<typeof setTimeout> | undefined
+
+/**
+ * One quiet line above the input. Info fades out on its own after a few
+ * seconds unless it's `sticky`; errors stay until dismissed or replaced.
+ */
+function showBanner(text: string, kind: 'info' | 'error' = 'info', sticky = false): void {
   const el = $('banner')
-  el.textContent = text
-  el.className = `banner ${kind === 'error' ? 'error' : ''}`
+  $('banner-text').textContent = text
+  el.className = kind === 'error' ? 'notice error' : 'notice'
   el.hidden = false
+  clearTimeout(bannerTimer)
+  if (kind === 'info' && !sticky) bannerTimer = setTimeout(hideBanner, 6000)
 }
 
 function hideBanner(): void {
+  clearTimeout(bannerTimer)
   $('banner').hidden = true
 }
 
@@ -99,8 +108,8 @@ function renderTranscript(): void {
   const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 24
   if (transcript.entries.length === 0) {
     box.innerHTML = listening
-      ? '<p class="hint">Listening… speech will show up here.</p>'
-      : '<p class="hint">Press the mic button to start listening.</p>'
+      ? '<p class="hint">Listening…</p>'
+      : '<p class="hint">Not listening. Press the mic above to start.</p>'
     return
   }
   box.replaceChildren(
@@ -168,7 +177,7 @@ function pollAutoSuggest(): void {
 
 function needsSpeechKey(): boolean {
   if (settings.sttApiKey) return false
-  showBanner('Listening needs a speech-to-text key (Settings → Speech to text). Typed questions work without it.', 'error')
+  showBanner('Listening needs a speech-to-text key. Add one in Settings → Speech to text. Typing works without it.', 'error')
   return true
 }
 
@@ -263,7 +272,7 @@ async function toggleVoiceQuestion(): Promise<void> {
     cap.startRecording()
     recordingQuestion = true
     updateVoiceUi()
-    showBanner(`Listening to your question… press ${displayHotkey(settings.hotkeys['voice-question'])} or the mic button again to send.`)
+    showBanner(`Listening… press ${displayHotkey(settings.hotkeys['voice-question'])} or the mic again to send.`, 'info', true)
     return
   }
 
@@ -279,7 +288,7 @@ async function toggleVoiceQuestion(): Promise<void> {
     showBanner("Didn't catch that. Try again.", 'error')
     return
   }
-  showBanner('Transcribing your question…')
+  showBanner('Transcribing…', 'info', true)
   try {
     const question = await api.transcribe(encodeWav(samples, SAMPLE_RATE))
     hideBanner()
@@ -324,8 +333,8 @@ function renderAttachments(): void {
     })
   )
   $<HTMLTextAreaElement>('question').placeholder = attachments.length
-    ? 'Ask about the attached image…'
-    : 'Ask about your screen…'
+    ? 'Ask about the image'
+    : 'Ask about your screen'
 }
 
 function attach(a: ImageAttachment): void {
@@ -388,12 +397,12 @@ function createExchange(label: string, speakOnly: boolean, images: number): HTML
   q.append(qText, copy)
   const a = document.createElement('div')
   a.className = 'a status'
-  a.textContent = 'Starting…'
+  a.textContent = 'Thinking…'
   if (speakOnly) {
     // Voice-only: the answer is spoken; the text stays tucked away.
     const details = document.createElement('details')
     const summary = document.createElement('summary')
-    summary.textContent = 'Spoken answer (show text)'
+    summary.textContent = 'Spoken · show text'
     details.append(summary, a)
     wrap.append(q, details)
   } else {
@@ -429,7 +438,7 @@ interface SendOptions {
 }
 
 function defaultLabel(kind: AskKind, question: string, auto: boolean): string {
-  if (kind === 'suggest-reply') return auto ? 'They asked something. You could say:' : 'What should I say?'
+  if (kind === 'suggest-reply') return auto ? 'Suggested reply' : 'What should I say?'
   if (kind === 'summarize') return 'Summarize the conversation'
   return question.trim()
 }
@@ -514,8 +523,12 @@ function onAssistantEvent(e: AssistantEvent): void {
 
 function renderMode(): void {
   const mode = getMode(settings.mode)
-  $<HTMLSelectElement>('mode-select').value = mode.id
-  $('mode-hint').textContent = mode.hint
+  const select = $<HTMLSelectElement>('mode-select')
+  select.value = mode.id
+  select.title = mode.hint
+  $('mode-label').textContent = mode.name
+  const hint = document.getElementById('mode-hint')
+  if (hint) hint.textContent = mode.hint
   $('actions').replaceChildren(
     ...mode.actions.map((action) => {
       const b = document.createElement('button')
@@ -539,13 +552,25 @@ function renderShortcutHelp(): void {
         const li = document.createElement('li')
         const kbd = document.createElement('kbd')
         kbd.textContent = displayHotkey(settings.hotkeys[a])
-        li.append(kbd, ` ${HOTKEY_LABELS[a].toLowerCase()}`)
+        const what = document.createElement('span')
+        what.textContent = HOTKEY_LABELS[a]
+        li.append(kbd, what)
         return li
       })
   )
 }
 
 // ---------- settings ----------
+
+function applyTheme(): void {
+  if (settings.theme === 'system') delete document.documentElement.dataset.theme
+  else document.documentElement.dataset.theme = settings.theme
+}
+
+function renderReplyMode(): void {
+  const input = document.querySelector<HTMLInputElement>(`#reply-mode input[value="${settings.replyMode}"]`)
+  if (input) input.checked = true
+}
 
 function settingsForm(): HTMLFormElement {
   return $<HTMLFormElement>('settings-form')
@@ -578,11 +603,13 @@ async function openSettings(): Promise<void> {
   hotkeyEditor?.render(settings.hotkeys, await api.hotkeyStatus())
   $('view-main').hidden = true
   $('view-settings').hidden = false
+  $('btn-settings').classList.add('active')
 }
 
 function closeSettings(): void {
   $('view-settings').hidden = true
   $('view-main').hidden = false
+  $('btn-settings').classList.remove('active')
 }
 
 async function saveSettingsForm(): Promise<void> {
@@ -605,7 +632,8 @@ async function saveSettingsForm(): Promise<void> {
 
   const before = settings
   settings = await api.saveSettings(patch as Partial<Settings>)
-  $<HTMLSelectElement>('quick-reply-mode').value = settings.replyMode
+  renderReplyMode()
+  applyTheme()
   renderMode()
   renderShortcutHelp()
   updateListeningUi()
@@ -657,7 +685,7 @@ function onHotkey(action: HotkeyAction): void {
 function onClickThrough(on: boolean): void {
   document.body.classList.toggle('click-through', on)
   if (on) {
-    showBanner(`Click-through is on: clicks pass to the window behind. ${displayHotkey(settings.hotkeys['click-through'])} turns it off.`)
+    showBanner(`Click-through on. ${displayHotkey(settings.hotkeys['click-through'])} to turn off.`, 'info', true)
   } else hideBanner()
 }
 
@@ -674,6 +702,7 @@ function clearSession(): void {
   renderTranscript()
   if (emptyState) $('answers').replaceChildren(emptyState.cloneNode(true))
   renderShortcutHelp()
+  renderMode()
   hideBanner()
 }
 
@@ -739,6 +768,23 @@ function wire(): void {
   $('btn-voice').addEventListener('click', () => void toggleVoiceQuestion())
   $('btn-snip').addEventListener('click', () => void snipArea())
   $('btn-hide').addEventListener('click', () => void api.hideWindow())
+  $('banner-close').addEventListener('click', hideBanner)
+
+  const menu = $('menu')
+  const more = $('btn-more')
+  const setMenu = (open: boolean): void => {
+    menu.hidden = !open
+    more.setAttribute('aria-expanded', String(open))
+    more.classList.toggle('active', open)
+  }
+  more.addEventListener('click', (e) => {
+    e.stopPropagation()
+    setMenu(menu.hidden)
+  })
+  document.addEventListener('click', (e) => {
+    if (!menu.hidden && !menu.contains(e.target as Node)) setMenu(false)
+  })
+  menu.addEventListener('click', () => setMenu(false))
   $('btn-export').addEventListener('click', () => void exportSession())
   $('btn-clear').addEventListener('click', () => {
     if (transcript.entries.length === 0 && history.length === 0) return
@@ -773,15 +819,16 @@ function wire(): void {
     renderMode()
   })
 
-  const quickMode = $<HTMLSelectElement>('quick-reply-mode')
-  quickMode.addEventListener('change', async () => {
-    settings = await api.saveSettings({ replyMode: quickMode.value as Settings['replyMode'] })
+  $('reply-mode').addEventListener('change', async (e) => {
+    const value = (e.target as HTMLInputElement).value as Settings['replyMode']
+    settings = await api.saveSettings({ replyMode: value })
     if (settings.replyMode === 'text') voice.stop()
   })
 
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || (e.target as HTMLElement).closest('.hotkey')) return
-    if (speechSynthesis.speaking) voice.stop()
+    if (!menu.hidden) setMenu(false)
+    else if (speechSynthesis.speaking) voice.stop()
     else if (!$('view-settings').hidden) closeSettings()
     else void api.hideWindow()
   })
@@ -799,13 +846,14 @@ function wire(): void {
 async function init(): Promise<void> {
   wire()
   settings = await api.getSettings()
-  $<HTMLSelectElement>('quick-reply-mode').value = settings.replyMode
+  applyTheme()
+  renderReplyMode()
   renderMode()
   renderShortcutHelp()
   emptyState = $('empty').cloneNode(true)
   updateListeningUi()
   if (!settings.anthropicApiKey || !settings.sttApiKey) {
-    showBanner('Welcome! Open Settings (gear icon) to add your API keys.')
+    showBanner('Add your API keys in Settings to get started.', 'info', true)
     return
   }
   const failed = (await api.hotkeyStatus()).filter((s) => s.error && s.error !== 'Off')
