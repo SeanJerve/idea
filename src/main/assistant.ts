@@ -1,14 +1,15 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { SYSTEM_PROMPT, buildUserText } from '@shared/prompt'
+import { buildRequest } from '@shared/request'
 import type { AskRequest, AssistantEvent, Settings } from '@shared/types'
 
-/** Models that accept the server-side refusal fallback ("default" routing). */
-const FALLBACK_MODELS = new Set(['claude-fable-5-1', 'claude-opus-5-5', 'claude-opus-5', 'claude-sonnet-5-5'])
-
 const running = new Map<string, AbortController>()
+/** Requests cancelled before they reached the API (e.g. while the screenshot was taken). */
+const cancelledEarly = new Set<string>()
 
 export function cancel(id: string): void {
-  running.get(id)?.abort()
+  const controller = running.get(id)
+  if (controller) controller.abort()
+  else cancelledEarly.add(id)
 }
 
 export async function ask(
@@ -17,42 +18,20 @@ export async function ask(
   screenshot: string | null,
   emit: (e: AssistantEvent) => void
 ): Promise<void> {
+  if (cancelledEarly.delete(req.id)) return
   if (!settings.anthropicApiKey) {
     emit({ id: req.id, type: 'error', message: 'Add your Anthropic API key in Settings.' })
     return
   }
 
-  const content: Anthropic.Beta.BetaContentBlockParam[] = []
-  if (screenshot) {
-    content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: screenshot } })
-  }
-  content.push({
-    type: 'text',
-    text: buildUserText(req, {
-      now: Date.now(),
-      replyMode: settings.replyMode,
-      customInstructions: settings.customInstructions,
-      hasScreenshot: screenshot !== null
-    })
-  })
-
   const client = new Anthropic({ apiKey: settings.anthropicApiKey })
   const controller = new AbortController()
   running.set(req.id, controller)
-  const useFallback = FALLBACK_MODELS.has(settings.model)
 
   try {
-    const stream = client.beta.messages.stream(
-      {
-        model: settings.model,
-        max_tokens: 16000,
-        output_config: { effort: settings.effort },
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content }],
-        ...(useFallback ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {})
-      },
-      { signal: controller.signal }
-    )
+    const stream = client.beta.messages.stream(buildRequest(req, settings, screenshot, Date.now()), {
+      signal: controller.signal
+    })
 
     let text = ''
     for await (const event of stream) {

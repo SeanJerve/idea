@@ -15,6 +15,8 @@ export interface SegmenterOptions {
   minThreshold?: number
   /** Speech must be this many times louder than the tracked noise floor. */
   noiseMultiplier?: number
+  /** How fast the noise floor may rise, per second, when sound stays loud (e.g. 1.3 = +30%/s). */
+  noiseRisePerSec?: number
 }
 
 export interface Segment {
@@ -35,6 +37,7 @@ export class Segmenter {
   private readonly maxFrames: number
   private readonly minThreshold: number
   private readonly noiseMultiplier: number
+  private readonly noiseRise: number
 
   private pending = new Float32Array(0)
   private preRoll: Float32Array[] = []
@@ -59,6 +62,7 @@ export class Segmenter {
     this.maxFrames = frames(opts.maxSegmentMs ?? 20_000)
     this.minThreshold = opts.minThreshold ?? 0.01
     this.noiseMultiplier = opts.noiseMultiplier ?? 3
+    this.noiseRise = Math.pow(opts.noiseRisePerSec ?? 1.3, frameMs / 1000)
   }
 
   get speaking(): boolean {
@@ -94,12 +98,23 @@ export class Segmenter {
     return Math.max(this.minThreshold, this.noiseFloor * this.noiseMultiplier)
   }
 
+  /**
+   * The floor follows quiet frames down quickly and creeps up slowly. Gaps
+   * between words keep it near the true background while someone talks; a
+   * steady fan or hum slowly raises it until the noise no longer counts as speech.
+   */
+  private trackNoise(rms: number): void {
+    if (rms < this.noiseFloor) this.noiseFloor = this.noiseFloor * 0.7 + rms * 0.3
+    else this.noiseFloor = Math.min(rms, this.noiseFloor * this.noiseRise)
+  }
+
   private processFrame(frame: Float32Array): Segment | null {
     let sum = 0
     for (let k = 0; k < frame.length; k++) sum += frame[k] * frame[k]
     const rms = Math.sqrt(sum / frame.length)
     this.level = rms
     const loud = rms > this.threshold()
+    this.trackNoise(rms)
     const frameStart = this.consumed
     this.consumed += frame.length
 
@@ -108,8 +123,6 @@ export class Segmenter {
         this.loudStreak++
       } else {
         this.loudStreak = 0
-        // Track the noise floor only while nobody is talking.
-        this.noiseFloor = this.noiseFloor * 0.98 + rms * 0.02
       }
       this.preRoll.push(frame)
       if (this.preRoll.length > this.preRollFrames) this.preRoll.shift()

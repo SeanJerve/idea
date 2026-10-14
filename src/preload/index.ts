@@ -9,6 +9,8 @@ const api: CopilotApi = {
   cancel: (id) => ipcRenderer.invoke('assistant:cancel', id),
   hideWindow: () => ipcRenderer.invoke('window:hide'),
   quit: () => ipcRenderer.invoke('app:quit'),
+  copyText: (text) => ipcRenderer.invoke('clipboard:write', text),
+  exportSession: (markdown) => ipcRenderer.invoke('session:export', markdown),
   onAssistantEvent(cb) {
     const listener = (_e: IpcRendererEvent, event: AssistantEvent): void => cb(event)
     ipcRenderer.on('assistant:event', listener)
@@ -18,6 +20,11 @@ const api: CopilotApi = {
     const listener = (_e: IpcRendererEvent, action: HotkeyAction): void => cb(action)
     ipcRenderer.on('hotkey', listener)
     return () => ipcRenderer.off('hotkey', listener)
+  },
+  onClickThrough(cb) {
+    const listener = (_e: IpcRendererEvent, on: boolean): void => cb(on)
+    ipcRenderer.on('click-through', listener)
+    return () => ipcRenderer.off('click-through', listener)
   }
 }
 

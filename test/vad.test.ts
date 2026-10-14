@@ -63,3 +63,42 @@ test('flush returns speech in progress', () => {
   assert.ok(seg.flush())
   assert.equal(seg.speaking, false)
 })
+
+test('adapts to steady background noise (fan, hum) instead of streaming it', () => {
+  const seg = new Segmenter({ sampleRate: RATE })
+  // Noise above the absolute threshold: at most one short false start while the floor adapts...
+  const fromNoise = feed(seg, noise(20_000, 0.03))
+  assert.ok(fromNoise.length <= 1, `noise produced ${fromNoise.length} segments`)
+  for (const s of fromNoise) assert.ok(s.length / RATE < 8, `noise segment ${s.length / RATE}s`)
+  assert.equal(seg.speaking, false)
+  // ...and real speech on top of it is still picked up.
+  const fromSpeech = [...feed(seg, tone(1200, 0.4)), ...feed(seg, noise(1500, 0.03))]
+  assert.equal(fromSpeech.length, 1)
+})
+
+test('pre-roll keeps the start of the word', () => {
+  const seg = new Segmenter({ sampleRate: RATE, preRollMs: 300 })
+  const lead = noise(1000, 0.002)
+  const speech = tone(1000, 0.3)
+  const [segment] = [...feed(seg, lead), ...feed(seg, speech), ...feed(seg, noise(1500, 0.002))]
+  // The segment begins before the tone did.
+  assert.ok(segment.length / RATE >= 1.0 + 0.25, `segment ${segment.length / RATE}s`)
+})
+
+test('reset() discards speech in progress', () => {
+  const seg = new Segmenter({ sampleRate: RATE })
+  feed(seg, tone(600, 0.3))
+  seg.reset()
+  assert.equal(seg.speaking, false)
+  assert.equal(seg.flush(), null)
+})
+
+test('handles odd block sizes', () => {
+  const seg = new Segmenter({ sampleRate: RATE })
+  const audio = [noise(500, 0.002), tone(1000, 0.3), noise(1500, 0.002)]
+  const found: Float32Array[] = []
+  for (const a of audio) {
+    for (let i = 0; i < a.length; i += 333) for (const s of seg.push(a.slice(i, i + 333))) found.push(s.samples)
+  }
+  assert.equal(found.length, 1)
+})

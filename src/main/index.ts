@@ -1,7 +1,9 @@
 import {
   app,
   BrowserWindow,
+  clipboard,
   desktopCapturer,
+  dialog,
   globalShortcut,
   ipcMain,
   Menu,
@@ -11,34 +13,42 @@ import {
   shell,
   Tray
 } from 'electron'
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { AskRequest, AssistantEvent, HotkeyAction, Settings } from '@shared/types'
+import { restoreBounds } from '@shared/window'
 import { ask, cancel } from './assistant'
 import { captureScreen } from './screen'
 import { loadSettings, saveSettings } from './settings'
 import { transcribe } from './transcribe'
 
+// Lets tests (and portable setups) keep settings somewhere other than %APPDATA%.
+if (process.env['SCREEN_COPILOT_USER_DATA']) app.setPath('userData', process.env['SCREEN_COPILOT_USER_DATA'])
+
 let overlay: BrowserWindow | null = null
 let tray: Tray | null = null
+let clickThrough = false
 
 const HOTKEYS: Record<string, HotkeyAction> = {
   'CommandOrControl+Shift+Space': 'focus-input',
   'CommandOrControl+Shift+A': 'voice-question',
   'CommandOrControl+Shift+R': 'suggest-reply',
-  'CommandOrControl+Shift+L': 'toggle-listening'
+  'CommandOrControl+Shift+L': 'toggle-listening',
+  'CommandOrControl+Shift+K': 'click-through'
 }
 
 function createOverlay(): BrowserWindow {
   const settings = loadSettings()
   const { workArea } = screen.getPrimaryDisplay()
-  const width = 440
-  const height = 600
+  const fallback = { width: 440, height: 600, x: workArea.x + workArea.width - 440 - 24, y: workArea.y + 24 }
+  const bounds = restoreBounds(
+    settings.windowBounds,
+    screen.getAllDisplays().map((d) => d.workArea),
+    fallback
+  )
 
   const win = new BrowserWindow({
-    width,
-    height,
-    x: workArea.x + workArea.width - width - 24,
-    y: workArea.y + 24,
+    ...bounds,
     minWidth: 320,
     minHeight: 240,
     frame: false,
@@ -80,6 +90,17 @@ function createOverlay(): BrowserWindow {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
   win.on('closed', () => (overlay = null))
+
+  // Remember where the user put the overlay.
+  let saveTimer: NodeJS.Timeout | undefined
+  const rememberBounds = (): void => {
+    clearTimeout(saveTimer)
+    saveTimer = setTimeout(() => {
+      if (!win.isDestroyed()) saveSettings({ windowBounds: win.getBounds() })
+    }, 500)
+  }
+  win.on('move', rememberBounds)
+  win.on('resize', rememberBounds)
   return win
 }
 
@@ -94,10 +115,26 @@ function showOverlay(focus: boolean): void {
   }
 }
 
+/** Click-through: the overlay stays visible but clicks go to the window underneath. */
+function setClickThrough(on: boolean): void {
+  clickThrough = on
+  overlay?.setIgnoreMouseEvents(on, { forward: true })
+  overlay?.webContents.send('click-through', on)
+}
+
 function sendHotkey(action: HotkeyAction): void {
-  if (action === 'focus-input' && overlay?.isVisible() && overlay.isFocused()) {
-    overlay.hide()
+  if (action === 'click-through') {
+    showOverlay(false)
+    setClickThrough(!clickThrough)
     return
+  }
+  if (action === 'focus-input') {
+    if (overlay?.isVisible() && overlay.isFocused() && !clickThrough) {
+      overlay.hide()
+      return
+    }
+    // Typing needs a clickable window.
+    if (clickThrough) setClickThrough(false)
   }
   showOverlay(action === 'focus-input')
   overlay?.webContents.send('hotkey', action)
@@ -119,6 +156,7 @@ function createTray(): void {
     Menu.buildFromTemplate([
       { label: 'Show', click: () => showOverlay(true) },
       { label: 'Hide', click: () => overlay?.hide() },
+      { label: 'Toggle click-through (Ctrl+Shift+K)', click: () => setClickThrough(!clickThrough) },
       { type: 'separator' },
       { label: 'Quit', click: () => app.quit() }
     ])
@@ -154,6 +192,19 @@ function registerIpc(): void {
   })
   ipcMain.handle('assistant:cancel', (_e, id: string) => cancel(id))
   ipcMain.handle('window:hide', () => overlay?.hide())
+  ipcMain.handle('clipboard:write', (_e, text: string) => clipboard.writeText(text))
+  ipcMain.handle('session:export', async (_e, markdown: string) => {
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-')
+    const options = {
+      title: 'Save session',
+      defaultPath: join(app.getPath('documents'), `screen-copilot-${stamp}.md`),
+      filters: [{ name: 'Markdown', extensions: ['md'] }]
+    }
+    const result = overlay ? await dialog.showSaveDialog(overlay, options) : await dialog.showSaveDialog(options)
+    if (result.canceled || !result.filePath) return null
+    await writeFile(result.filePath, markdown, 'utf8')
+    return result.filePath
+  })
   ipcMain.handle('app:quit', () => app.quit())
 }
 

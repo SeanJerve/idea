@@ -12,7 +12,12 @@ A Windows desktop assistant that watches your screen and listens to your microph
 
 - **Ask about your screen.** Type or speak a question. A screenshot of the monitor your mouse is on goes along with it.
 - **Live transcript.** Your mic is "Me" and everything your computer plays (a call, a video) is "Them". The last few minutes go with each question.
-- **Quick actions.** *Suggest reply* writes what you could say next. *Summarize* recaps the conversation.
+- **Quick actions.** *Suggest reply* writes what you could say next. *Summarize* recaps the conversation (last hour).
+- **Auto-suggest (optional).** When the other side asks a question and pauses, a suggested reply appears on its own. Turn it on in Settings → Listening.
+- **Echo removal.** Without headphones your mic also hears the other person; those duplicate lines are detected and dropped.
+- **Click-through mode.** `Ctrl+Shift+K` keeps the overlay visible but lets clicks pass to the window behind it.
+- **Copy, save, clear.** Copy any answer, save the whole session (transcript + answers) as a Markdown file, or wipe it.
+- **Remembers its place.** The overlay reopens where you left it (and comes back on screen if that monitor is gone).
 - **Replies your way.** Show them in the overlay, speak them with Windows' built-in voices, or both.
 - **Stays out of the way.** The overlay floats on top and is draggable and resizable. It is left out of its own screenshots and, if you choose, out of screen shares.
 
@@ -24,6 +29,7 @@ A Windows desktop assistant that watches your screen and listens to your microph
 | `Ctrl+Shift+A` | Ask out loud: press, speak, press again to send |
 | `Ctrl+Shift+R` | Suggest what to say next |
 | `Ctrl+Shift+L` | Start / stop listening |
+| `Ctrl+Shift+K` | Click-through on / off |
 | `Esc` | Stop speaking, or hide the overlay |
 
 ## Setup (Windows)
@@ -47,15 +53,17 @@ A Windows desktop assistant that watches your screen and listens to your microph
 
 To build an installer: `npm run dist:win`. The `.exe` lands in `dist/`.
 
+**Or download one:** every push to `main` builds a Windows installer on GitHub Actions. Open the repo's **Actions** tab → latest **CI** run → **Artifacts** → `screen-copilot-windows`. It isn't code-signed, so Windows SmartScreen will warn the first time; choose *More info → Run anyway*.
+
 ## Tips
 
-- **Use headphones.** Without them your mic also picks up the other person through your speakers, and their words show up twice.
+- **Use headphones if you can.** Echo removal catches most duplicates, but headphones keep the transcript cleanest.
 - **Speed vs. quality.** Settings → Effort: *Low* is fastest. Settings → Model: `claude-haiku-5-5` is the quickest and cheapest; `claude-opus-5-5` (default) is the smartest.
 - **Cost.** Speech-to-text runs only while you're listening and only on speech, not silence (OpenAI is about $0.003 per minute of speech). Claude is called only when you ask, with one screenshot and a few minutes of transcript.
 
 ## Privacy and consent
 
-Audio and screenshots are sent to the API providers you configure. Nothing is stored on disk except your settings. The transcript lives in memory and is gone when you quit.
+Audio and screenshots are sent to the API providers you configure. Nothing is stored on disk except your settings and any session you choose to save. The transcript lives in memory and is gone when you quit.
 
 Recording or transcribing other people can require their consent; in some places all parties must agree. Let people know when you're transcribing a call. Many employers and schools forbid AI help during interviews and exams.
 
@@ -64,15 +72,20 @@ Recording or transcribing other people can require their consent; in some places
 ```
 npm run dev        # run with hot reload
 npm run typecheck  # TypeScript checks
-npm test           # unit tests (voice detection, WAV encoding, prompt building)
+npm test           # unit tests
+npm run test:e2e   # end-to-end tests: launches the real app (on Linux, wrap in xvfb-run)
 npm run build      # production bundle in out/
 ```
+
+**Unit tests** (`test/`) cover voice detection (including steady background noise), WAV encoding, transcript ordering and echo removal, auto-suggest timing, the transcription queue, speech-to-text retries against a local HTTP server, the Claude request shape, prompt building, and window placement.
+
+**End-to-end tests** (`e2e/`) launch the built Electron app against a local fake of the Claude and speech-to-text APIs, with a fake microphone that plays generated speech-like audio. They check streaming answers, screenshots in requests, follow-ups, cancelling, error messages, live transcription, spoken questions, settings persistence, copy, save, clear, hide, and window memory. CI runs both on every push.
 
 Layout:
 
 - `src/main/`: Electron main process: overlay window, hotkeys, screenshots, Claude calls (`assistant.ts`), speech-to-text (`transcribe.ts`), settings
 - `src/preload/`: the safe bridge between the UI and the main process
 - `src/renderer/`: the overlay UI, audio capture and voice detection (`src/audio/`), text-to-speech
-- `src/shared/`: types and the prompt builder
+- `src/shared/`: types, the prompt and request builders, window placement
 
 System audio uses Electron's Windows loopback capture. macOS and Linux would need a different capture path; everything else is cross-platform.

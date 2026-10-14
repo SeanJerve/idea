@@ -205,9 +205,34 @@ kbd {
 }
 
 .exchange .q {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--muted);
   font-size: 12px;
   margin-bottom: 4px;
+}
+.exchange .q span {
+  flex: 1;
+}
+.exchange .copy {
+  font-size: 11px;
+  padding: 1px 8px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.exchange:hover .copy,
+.exchange .copy:focus-visible {
+  opacity: 1;
+}
+.exchange:not([data-answer]) .copy {
+  display: none;
+}
+
+/* Click-through: dashed outline so it's clear the overlay won't take clicks. */
+body.click-through .shell {
+  border-style: dashed;
+  border-color: var(--accent);
 }
 .exchange .a {
   background: var(--panel);

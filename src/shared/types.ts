@@ -32,10 +32,22 @@ export interface Settings {
   /** How much recent transcript to send with each question. */
   contextMinutes: number
 
+  /** Suggest a reply automatically when the other side asks a question. */
+  autoSuggest: boolean
+
   /** Keep the overlay out of screenshots and screen shares. */
   hideFromCapture: boolean
   overlayOpacity: number
   customInstructions: string
+  /** Last overlay position and size, restored on launch. */
+  windowBounds: Bounds | null
+}
+
+export interface Bounds {
+  x: number
+  y: number
+  width: number
+  height: number
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -56,10 +68,12 @@ export const DEFAULT_SETTINGS: Settings = {
   captureSystem: true,
   includeScreenshot: true,
   contextMinutes: 3,
+  autoSuggest: false,
 
   hideFromCapture: true,
   overlayOpacity: 0.94,
-  customInstructions: ''
+  customInstructions: '',
+  windowBounds: null
 }
 
 export const STT_PRESETS: Record<string, Pick<Settings, 'sttBaseUrl' | 'sttModel'>> = {
@@ -88,7 +102,7 @@ export type AssistantEvent =
   | { id: string; type: 'done'; text: string }
   | { id: string; type: 'error'; message: string }
 
-export type HotkeyAction = 'focus-input' | 'voice-question' | 'suggest-reply' | 'toggle-listening'
+export type HotkeyAction = 'focus-input' | 'voice-question' | 'suggest-reply' | 'toggle-listening' | 'click-through'
 
 export interface CopilotApi {
   getSettings(): Promise<Settings>
@@ -98,6 +112,10 @@ export interface CopilotApi {
   cancel(id: string): Promise<void>
   hideWindow(): Promise<void>
   quit(): Promise<void>
+  copyText(text: string): Promise<void>
+  /** Opens a save dialog; resolves to the saved path, or null if cancelled. */
+  exportSession(markdown: string): Promise<string | null>
   onAssistantEvent(cb: (e: AssistantEvent) => void): () => void
   onHotkey(cb: (action: HotkeyAction) => void): () => void
+  onClickThrough(cb: (on: boolean) => void): () => void
 }

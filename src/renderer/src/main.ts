@@ -1,7 +1,6 @@
 import './styles.css'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
-import { recentTranscript } from '@shared/prompt'
 import {
   DEFAULT_SETTINGS,
   MODEL_OPTIONS,
@@ -10,20 +9,26 @@ import {
   type AssistantEvent,
   type HotkeyAction,
   type Settings,
-  type Speaker,
-  type TranscriptEntry
+  type Speaker
 } from '@shared/types'
 import { SAMPLE_RATE, StreamCapture, openMic, openSystemAudio } from './audio/capture.ts'
 import { encodeWav } from './audio/wav.ts'
+import { AutoSuggest } from './auto-suggest.ts'
 import { isLikelyNoise } from './speech-text.ts'
+import { QueueOverflowError, TaskQueue } from './task-queue.ts'
+import { Transcript, sessionMarkdown } from './transcript.ts'
 import { VoiceReply } from './tts.ts'
 
 const api = window.copilot
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T
 
 let settings: Settings = { ...DEFAULT_SETTINGS }
-const transcript: TranscriptEntry[] = []
+const transcript = new Transcript()
 const history: { question: string; answer: string }[] = []
+const sttQueue = new TaskQueue(3, 12)
+const autoSuggest = new AutoSuggest()
+/** Summaries look at a longer stretch of the conversation than questions do. */
+const SUMMARY_MINUTES = 60
 
 let mic: StreamCapture | null = null
 let system: StreamCapture | null = null
@@ -39,6 +44,7 @@ interface Pending {
   el: HTMLElement
   text: string
   speak: boolean
+  auto: boolean
 }
 let current: Pending | null = null
 
@@ -79,20 +85,11 @@ function errorText(err: unknown): string {
 
 // ---------- transcript ----------
 
-function addTranscript(entry: TranscriptEntry): void {
-  // Clips finish transcribing out of order; keep the list in time order.
-  let i = transcript.length
-  while (i > 0 && transcript[i - 1].at > entry.at) i--
-  transcript.splice(i, 0, entry)
-  if (transcript.length > 2000) transcript.splice(0, transcript.length - 2000)
-  renderTranscript()
-}
-
 function renderTranscript(): void {
   const box = $('transcript')
   const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 24
   box.replaceChildren(
-    ...transcript.slice(-60).map((e) => {
+    ...transcript.entries.slice(-60).map((e) => {
       const p = document.createElement('p')
       p.className = e.speaker
       const who = document.createElement('span')
@@ -108,12 +105,26 @@ function renderTranscript(): void {
 async function handleSegment(speaker: Speaker, samples: Float32Array): Promise<void> {
   const at = Date.now()
   try {
-    const text = await api.transcribe(encodeWav(samples, SAMPLE_RATE))
+    const text = await sttQueue.run(() => api.transcribe(encodeWav(samples, SAMPLE_RATE)))
     if (!text || isLikelyNoise(text)) return
-    addTranscript({ speaker, text, at })
+    const entry = { speaker, text, at }
+    if (!transcript.add(entry)) return
+    renderTranscript()
+    if (settings.autoSuggest) autoSuggest.onEntry(entry, Date.now())
   } catch (err) {
-    showBanner(errorText(err), 'error')
+    // A dropped backlog clip isn't worth interrupting the user over.
+    if (!(err instanceof QueueOverflowError)) showBanner(errorText(err), 'error')
   }
+}
+
+/** Fires an automatic "what should I say" once the other side has asked something and paused. */
+function pollAutoSuggest(): void {
+  if (!settings.autoSuggest || !listening) return
+  const theyAreTalking = system?.speaking ?? false
+  if (!autoSuggest.poll(Date.now(), theyAreTalking)) return
+  // Never replace something the user asked for themselves.
+  if (current && !current.auto) return
+  send('suggest-reply', '', true)
 }
 
 // ---------- listening ----------
@@ -149,7 +160,7 @@ async function startListening(): Promise<void> {
   else hideBanner()
 
   listening = true
-  if (transcript.length === 0) $('transcript').innerHTML = '<p class="hint">Listening… speech will show up here.</p>'
+  if (transcript.entries.length === 0) $('transcript').innerHTML = '<p class="hint">Listening… speech will show up here.</p>'
   updateListeningUi()
   requestAnimationFrame(updateMeters)
 }
@@ -162,6 +173,7 @@ async function stopListening(): Promise<void> {
     hideBanner()
   }
   listening = false
+  autoSuggest.cancel()
   const caps = [mic, system]
   mic = null
   system = null
@@ -252,7 +264,22 @@ function createExchange(label: string, speak: boolean): HTMLElement {
   wrap.className = 'exchange'
   const q = document.createElement('div')
   q.className = 'q'
-  q.textContent = label
+  const qText = document.createElement('span')
+  qText.textContent = label
+  const copy = document.createElement('button')
+  copy.className = 'copy'
+  copy.type = 'button'
+  copy.textContent = 'Copy'
+  copy.title = 'Copy answer'
+  copy.addEventListener('click', () => {
+    const text = wrap.dataset.answer ?? ''
+    if (!text) return
+    void api.copyText(text).then(() => {
+      copy.textContent = 'Copied'
+      setTimeout(() => (copy.textContent = 'Copy'), 1200)
+    })
+  })
+  q.append(qText, copy)
   const a = document.createElement('div')
   a.className = 'a status'
   a.textContent = 'Starting…'
@@ -276,23 +303,40 @@ function scrollAnswers(force = false): void {
   if (force || box.scrollHeight - box.scrollTop - box.clientHeight < 80) box.scrollTop = box.scrollHeight
 }
 
-function send(kind: AskKind, question = ''): void {
-  if (kind === 'question' && !question.trim()) return
-  if (current) void api.cancel(current.id)
-  voice.stop()
+function labelFor(kind: AskKind, question: string, auto: boolean): string {
+  if (kind === 'suggest-reply') return auto ? 'They asked something. You could say:' : 'What should I say?'
+  if (kind === 'summarize') return 'Summarize the conversation'
+  return question.trim()
+}
 
-  const label =
-    kind === 'suggest-reply' ? 'What should I say?' : kind === 'summarize' ? 'Summarize the conversation' : question.trim()
+function stopCurrent(): void {
+  if (!current) return
+  void api.cancel(current.id)
+  if (!current.text) {
+    current.el.className = 'a status'
+    current.el.textContent = 'Stopped.'
+  }
+  current = null
+}
+
+function send(kind: AskKind, question = '', auto = false): void {
+  if (kind === 'question' && !question.trim()) return
+  stopCurrent()
+  voice.stop()
+  if (!auto) autoSuggest.cancel()
+
+  const label = labelFor(kind, question, auto)
   const speak = settings.replyMode !== 'text'
   const id = crypto.randomUUID()
-  current = { id, label, el: createExchange(label, speak), text: '', speak }
+  current = { id, label, el: createExchange(label, speak), text: '', speak, auto }
+  const minutes = kind === 'summarize' ? Math.max(SUMMARY_MINUTES, settings.contextMinutes) : settings.contextMinutes
 
   api
     .ask({
       id,
       kind,
       question,
-      transcript: recentTranscript(transcript, settings.contextMinutes, Date.now()),
+      transcript: transcript.recent(minutes, Date.now()),
       history: history.slice(-4)
     })
     .catch((err) => onAssistantEvent({ id, type: 'error', message: errorText(err) }))
@@ -309,6 +353,7 @@ function onAssistantEvent(e: AssistantEvent): void {
       c.text += e.text
       c.el.className = 'a'
       renderMarkdown(c.el, c.text)
+      ;(c.el.closest('.exchange') as HTMLElement).dataset.answer = c.text
       if (c.speak) voice.feed(e.text)
       scrollAnswers()
       break
@@ -410,6 +455,41 @@ function onHotkey(action: HotkeyAction): void {
     case 'toggle-listening':
       toggleListening()
       break
+    case 'click-through':
+      // Handled in the main process, which reports the new state via onClickThrough.
+      break
+  }
+}
+
+function onClickThrough(on: boolean): void {
+  document.body.classList.toggle('click-through', on)
+  if (on) showBanner('Click-through is on: clicks pass to the window behind. Ctrl+Shift+K turns it off.')
+  else hideBanner()
+}
+
+let emptyState: Node | null = null
+
+function clearSession(): void {
+  stopCurrent()
+  voice.stop()
+  autoSuggest.cancel()
+  transcript.clear()
+  history.length = 0
+  renderTranscript()
+  if (emptyState) $('answers').replaceChildren(emptyState.cloneNode(true))
+  hideBanner()
+}
+
+async function exportSession(): Promise<void> {
+  if (transcript.entries.length === 0 && history.length === 0) {
+    showBanner('Nothing to save yet.')
+    return
+  }
+  try {
+    const path = await api.exportSession(sessionMarkdown(transcript.entries, history, Date.now()))
+    if (path) showBanner(`Saved to ${path}`)
+  } catch (err) {
+    showBanner(errorText(err), 'error')
   }
 }
 
@@ -439,6 +519,11 @@ function wire(): void {
   $('btn-suggest').addEventListener('click', () => send('suggest-reply'))
   $('btn-summarize').addEventListener('click', () => send('summarize'))
   $('btn-hide').addEventListener('click', () => void api.hideWindow())
+  $('btn-export').addEventListener('click', () => void exportSession())
+  $('btn-clear').addEventListener('click', () => {
+    if (transcript.entries.length === 0 && history.length === 0) return
+    if (confirm('Clear the transcript and answers?')) clearSession()
+  })
   $('btn-settings').addEventListener('click', () => ($('view-settings').hidden ? openSettings() : closeSettings()))
   $('btn-settings-cancel').addEventListener('click', closeSettings)
   $('btn-quit').addEventListener('click', () => void api.quit())
@@ -477,9 +562,12 @@ function wire(): void {
 
   api.onAssistantEvent(onAssistantEvent)
   api.onHotkey(onHotkey)
+  api.onClickThrough(onClickThrough)
+  setInterval(pollAutoSuggest, 250)
 }
 
 async function init(): Promise<void> {
+  emptyState = $('empty').cloneNode(true)
   wire()
   settings = await api.getSettings()
   $<HTMLSelectElement>('quick-reply-mode').value = settings.replyMode

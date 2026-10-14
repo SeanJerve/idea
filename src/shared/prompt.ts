@@ -23,11 +23,6 @@ export function formatTranscript(entries: TranscriptEntry[], now: number): strin
     .join('\n')
 }
 
-export function recentTranscript(entries: TranscriptEntry[], minutes: number, now: number): TranscriptEntry[] {
-  const cutoff = now - minutes * 60_000
-  return entries.filter((e) => e.at >= cutoff)
-}
-
 export function taskText(req: Pick<AskRequest, 'kind' | 'question'>): string {
   switch (req.kind) {
     case 'suggest-reply':

@@ -17,6 +17,12 @@
         <button class="icon" id="btn-listen" title="Start listening (Ctrl+Shift+L)" aria-label="Toggle listening">
           <svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" /><path d="M19 11a7 7 0 0 1-14 0M12 18v3" /></svg>
         </button>
+        <button class="icon" id="btn-export" title="Save transcript and answers" aria-label="Save session">
+          <svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>
+        </button>
+        <button class="icon" id="btn-clear" title="Clear transcript and answers" aria-label="Clear session">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+        </button>
         <button class="icon" id="btn-settings" title="Settings" aria-label="Settings">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" /></svg>
         </button>
@@ -44,6 +50,7 @@
               <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> ask out loud (press again to send)</li>
               <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> suggest what to say next</li>
               <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> start / stop listening</li>
+              <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> click-through on / off</li>
             </ul>
           </div>
         </section>
@@ -99,6 +106,7 @@
           <label class="check"><input type="checkbox" name="captureMic" /> My microphone ("Me")</label>
           <label class="check"><input type="checkbox" name="captureSystem" /> Computer audio ("Them")</label>
           <label class="check"><input type="checkbox" name="includeScreenshot" /> Send a screenshot with each question</label>
+          <label class="check"><input type="checkbox" name="autoSuggest" /> Suggest a reply when they ask me a question</label>
           <label>Transcript sent with each question (minutes) <input type="number" name="contextMinutes" min="1" max="60" /></label>
 
           <h2>Replies</h2>
