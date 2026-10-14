@@ -1,0 +1,50 @@
+{
+  "name": "screen-copilot",
+  "version": "0.1.0",
+  "description": "A desktop assistant that sees your screen, hears your audio, and answers in an overlay or out loud.",
+  "main": "out/main/index.js",
+  "author": "seanjerve",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "node --test --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON test/*.test.ts",
+    "dist:win": "electron-vite build && electron-builder --win"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
+    "dompurify": "^3.4.17",
+    "marked": "^18.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "electron": "^44.7.2",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "typescript": "~5.9",
+    "vite": "^7.3.7"
+  },
+  "build": {
+    "appId": "com.seanjerve.screencopilot",
+    "productName": "Screen Copilot",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**",
+      "resources/**",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "resources/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
