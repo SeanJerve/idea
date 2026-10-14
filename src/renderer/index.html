@@ -14,7 +14,7 @@
         <span class="dot" id="listen-dot" title="Not listening"></span>
         <span class="title">Screen Copilot</span>
         <span class="spacer"></span>
-        <button class="icon" id="btn-listen" title="Start listening (Ctrl+Shift+L)" aria-label="Toggle listening">
+        <button class="icon" id="btn-listen" title="Start listening" aria-label="Toggle listening">
           <svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" /><path d="M19 11a7 7 0 0 1-14 0M12 18v3" /></svg>
         </button>
         <button class="icon" id="btn-export" title="Save transcript and answers" aria-label="Save session">
@@ -26,7 +26,7 @@
         <button class="icon" id="btn-settings" title="Settings" aria-label="Settings">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" /></svg>
         </button>
-        <button class="icon" id="btn-hide" title="Hide (Ctrl+Shift+Space)" aria-label="Hide">
+        <button class="icon" id="btn-hide" title="Hide (Esc)" aria-label="Hide">
           <svg viewBox="0 0 24 24"><path d="M5 12h14" /></svg>
         </button>
       </header>
@@ -45,34 +45,31 @@
         <section class="answers" id="answers" aria-live="polite">
           <div class="empty" id="empty">
             <p><b>Ask about anything on your screen or in the conversation.</b></p>
-            <ul>
-              <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> type a question</li>
-              <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> ask out loud (press again to send)</li>
-              <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> suggest what to say next</li>
-              <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> start / stop listening</li>
-              <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> click-through on / off</li>
-            </ul>
+            <ul id="shortcut-list"></ul>
+            <p class="tip">Tip: paste or drop an image, or snip an area of the screen, to ask about just that.</p>
           </div>
         </section>
 
         <div class="banner" id="banner" hidden></div>
 
         <footer class="composer">
-          <div class="quick">
-            <button id="btn-suggest">Suggest reply</button>
-            <button id="btn-summarize">Summarize</button>
-            <span class="spacer"></span>
-            <label class="mode" title="How answers are delivered">
-              <select id="quick-reply-mode">
-                <option value="text">Show</option>
-                <option value="voice">Speak</option>
-                <option value="both">Show + speak</option>
-              </select>
-            </label>
+          <div class="mode-row">
+            <select id="mode-select" aria-label="Mode" title="What you're doing"></select>
+            <span class="mode-hint" id="mode-hint"></span>
+            <select id="quick-reply-mode" aria-label="Reply mode" title="How answers are delivered">
+              <option value="text">Show</option>
+              <option value="voice">Speak</option>
+              <option value="both">Show + speak</option>
+            </select>
           </div>
+          <div class="quick" id="actions"></div>
+          <div class="attachments" id="attachments" hidden></div>
           <form id="ask-form" class="ask">
-            <button type="button" class="icon" id="btn-voice" title="Ask out loud (Ctrl+Shift+A)" aria-label="Ask out loud">
+            <button type="button" class="icon" id="btn-voice" title="Ask out loud" aria-label="Ask out loud">
               <svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" /><path d="M19 11a7 7 0 0 1-14 0M12 18v3" /></svg>
+            </button>
+            <button type="button" class="icon" id="btn-snip" title="Ask about an area of the screen" aria-label="Select an area of the screen">
+              <svg viewBox="0 0 24 24"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4" /></svg>
             </button>
             <textarea id="question" rows="1" placeholder="Ask about your screen…"></textarea>
             <button type="submit" class="icon primary" id="btn-send" title="Send (Enter)" aria-label="Send">
@@ -87,6 +84,15 @@
           <h2>Claude</h2>
           <label>Anthropic API key <input type="password" name="anthropicApiKey" autocomplete="off" placeholder="sk-ant-…" /></label>
           <label>Model <select name="model" id="model-select"></select></label>
+          <label>Answer language <input name="replyLanguage" list="languages" placeholder="Same as mine" /></label>
+          <datalist id="languages">
+            <option value="English"></option><option value="Tagalog"></option><option value="Spanish"></option>
+            <option value="French"></option><option value="German"></option><option value="Japanese"></option>
+            <option value="Korean"></option><option value="Chinese (Simplified)"></option><option value="Portuguese"></option>
+            <option value="Hindi"></option><option value="Arabic"></option><option value="Indonesian"></option>
+            <option value="Vietnamese"></option><option value="Italian"></option>
+          </datalist>
+          <label>Live translation model <select name="translateModel" id="translate-model-select"></select></label>
           <label>Effort
             <select name="effort">
               <option value="low">Low (fastest)</option>
@@ -124,7 +130,13 @@
           <h2>Window</h2>
           <label class="check"><input type="checkbox" name="hideFromCapture" /> Hide overlay from screenshots and screen sharing</label>
           <label>Opacity <input type="range" name="overlayOpacity" min="0.4" max="1" step="0.02" /></label>
+          <label class="check"><input type="checkbox" name="launchAtLogin" /> Start with Windows (in the tray)</label>
 
+          <h2>Shortcuts</h2>
+          <p class="hint">Click a shortcut and press new keys. Backspace turns it off.</p>
+          <div id="hotkey-rows"></div>
+
+          <p class="settings-error" id="settings-error" role="alert" hidden></p>
           <div class="actions">
             <button type="button" id="btn-quit" class="danger">Quit app</button>
             <span class="spacer"></span>

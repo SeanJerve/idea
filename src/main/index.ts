@@ -15,11 +15,13 @@ import {
 } from 'electron'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { AskRequest, AssistantEvent, HotkeyAction, Settings } from '@shared/types'
+import { parseHotkey } from '@shared/hotkeys'
+import type { AskRequest, AssistantEvent, HotkeyAction, HotkeyStatus, Settings } from '@shared/types'
 import { restoreBounds } from '@shared/window'
-import { ask, cancel } from './assistant'
+import { ask, cancel, translate } from './assistant'
 import { captureScreen } from './screen'
 import { loadSettings, saveSettings } from './settings'
+import { registerSnipIpc, snip } from './snip'
 import { transcribe } from './transcribe'
 
 // Lets tests (and portable setups) keep settings somewhere other than %APPDATA%.
@@ -28,14 +30,10 @@ if (process.env['SCREEN_COPILOT_USER_DATA']) app.setPath('userData', process.env
 let overlay: BrowserWindow | null = null
 let tray: Tray | null = null
 let clickThrough = false
-
-const HOTKEYS: Record<string, HotkeyAction> = {
-  'CommandOrControl+Shift+Space': 'focus-input',
-  'CommandOrControl+Shift+A': 'voice-question',
-  'CommandOrControl+Shift+R': 'suggest-reply',
-  'CommandOrControl+Shift+L': 'toggle-listening',
-  'CommandOrControl+Shift+K': 'click-through'
-}
+let hotkeyStatus: HotkeyStatus[] = []
+let snipping = false
+/** Launched at sign-in: stay in the tray until called. */
+let startHidden = process.argv.includes('--hidden')
 
 function createOverlay(): BrowserWindow {
   const settings = loadSettings()
@@ -69,7 +67,10 @@ function createOverlay(): BrowserWindow {
   win.setAlwaysOnTop(true, 'screen-saver')
   win.setOpacity(settings.overlayOpacity)
   win.setContentProtection(settings.hideFromCapture)
-  win.once('ready-to-show', () => win.show())
+  win.once('ready-to-show', () => {
+    if (!startHidden) win.show()
+    startHidden = false
+  })
 
   // Links in answers open in the browser, never inside the overlay.
   const openExternal = (url: string): void => {
@@ -140,11 +141,33 @@ function sendHotkey(action: HotkeyAction): void {
   overlay?.webContents.send('hotkey', action)
 }
 
-function registerHotkeys(): void {
-  for (const [accelerator, action] of Object.entries(HOTKEYS)) {
-    if (!globalShortcut.register(accelerator, () => sendHotkey(action))) {
-      console.warn(`Could not register ${accelerator}; another app may be using it.`)
+/** (Re)registers the user's shortcuts and records which ones couldn't be set. */
+function registerHotkeys(hotkeys: Record<HotkeyAction, string>): void {
+  globalShortcut.unregisterAll()
+  const taken = new Set<string>()
+  hotkeyStatus = (Object.entries(hotkeys) as [HotkeyAction, string][]).map(([action, raw]) => {
+    if (!raw.trim()) return { action, accelerator: '', error: 'Off' }
+    const parsed = parseHotkey(raw)
+    if (!parsed.ok) return { action, accelerator: raw, error: parsed.error }
+    const key = parsed.accelerator.toLowerCase()
+    if (taken.has(key)) return { action, accelerator: parsed.accelerator, error: 'Already used for another action.' }
+    taken.add(key)
+    let ok = false
+    try {
+      ok = globalShortcut.register(parsed.accelerator, () => sendHotkey(action))
+    } catch {
+      ok = false
     }
+    return ok
+      ? { action, accelerator: parsed.accelerator }
+      : { action, accelerator: parsed.accelerator, error: 'Another app is already using this shortcut.' }
+  })
+}
+
+function applyLoginItem(on: boolean): void {
+  // Windows and macOS only; Linux desktops handle autostart differently.
+  if (process.platform === 'win32' || process.platform === 'darwin') {
+    app.setLoginItemSettings({ openAtLogin: on, args: ['--hidden'] })
   }
 }
 
@@ -156,7 +179,8 @@ function createTray(): void {
     Menu.buildFromTemplate([
       { label: 'Show', click: () => showOverlay(true) },
       { label: 'Hide', click: () => overlay?.hide() },
-      { label: 'Toggle click-through (Ctrl+Shift+K)', click: () => setClickThrough(!clickThrough) },
+      { label: 'Ask about an area of the screen', click: () => sendHotkey('snip') },
+      { label: 'Toggle click-through', click: () => setClickThrough(!clickThrough) },
       { type: 'separator' },
       { label: 'Quit', click: () => app.quit() }
     ])
@@ -169,13 +193,30 @@ function applyWindowSettings(s: Settings): void {
   overlay?.setContentProtection(s.hideFromCapture)
 }
 
+async function runSnip(): Promise<Awaited<ReturnType<typeof snip>>> {
+  if (snipping) return null
+  snipping = true
+  try {
+    return await snip(overlay, loadSettings().hideFromCapture)
+  } finally {
+    snipping = false
+    showOverlay(true)
+  }
+}
+
 function registerIpc(): void {
   ipcMain.handle('settings:get', () => loadSettings())
   ipcMain.handle('settings:save', (_e, patch: Partial<Settings>) => {
+    const before = loadSettings()
     const next = saveSettings(patch)
     applyWindowSettings(next)
+    if (JSON.stringify(before.hotkeys) !== JSON.stringify(next.hotkeys)) registerHotkeys(next.hotkeys)
+    if (before.launchAtLogin !== next.launchAtLogin) applyLoginItem(next.launchAtLogin)
     return next
   })
+  ipcMain.handle('hotkeys:status', () => hotkeyStatus)
+  ipcMain.handle('translate', (_e, text: string) => translate(text, loadSettings()))
+  ipcMain.handle('snip', () => runSnip())
   ipcMain.handle('transcribe', (_e, wav: ArrayBuffer) => transcribe(wav, loadSettings()))
   ipcMain.handle('assistant:ask', async (event, req: AskRequest) => {
     const settings = loadSettings()
@@ -183,7 +224,8 @@ function registerIpc(): void {
       if (!event.sender.isDestroyed()) event.sender.send('assistant:event', e)
     }
     let screenshot: string | null = null
-    if (settings.includeScreenshot) {
+    // An area the user picked (or an image they added) replaces the full screenshot.
+    if (settings.includeScreenshot && (req.images ?? []).length === 0) {
       emit({ id: req.id, type: 'status', text: 'Looking at your screen…' })
       screenshot = await captureScreen(overlay, settings.hideFromCapture).catch(() => null)
     }
@@ -228,9 +270,10 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(() => {
     app.setAppUserModelId('com.seanjerve.screencopilot')
     registerIpc()
+    registerSnipIpc()
     registerSystemAudio()
     overlay = createOverlay()
-    registerHotkeys()
+    registerHotkeys(loadSettings().hotkeys)
     createTray()
   })
   app.on('will-quit', () => globalShortcut.unregisterAll())

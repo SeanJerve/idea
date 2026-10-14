@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    />
+    <title>Select an area</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        cursor: crosshair;
+        user-select: none;
+        font: 14px 'Segoe UI', system-ui, sans-serif;
+      }
+      #shot {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: fill;
+        pointer-events: none;
+      }
+      /* Dims everything except the selection, via a huge shadow around it. */
+      #sel {
+        position: fixed;
+        border: 2px solid #7c9cff;
+        box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.45);
+        pointer-events: none;
+      }
+      #sel.empty {
+        border: none;
+        inset: 0;
+        box-shadow: inset 0 0 0 100vmax rgba(0, 0, 0, 0.35);
+      }
+      #hint {
+        position: fixed;
+        top: 18px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1d2027;
+        color: #e8eaef;
+        border: 1px solid #323743;
+        border-radius: 8px;
+        padding: 6px 12px;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <img id="shot" alt="" />
+    <div id="sel" class="empty"></div>
+    <div id="hint">Drag to select an area · Esc to cancel</div>
+    <script type="module" src="./src/snip.ts"></script>
+  </body>
+</html>

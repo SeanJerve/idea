@@ -10,6 +10,11 @@ const api: CopilotApi = {
   hideWindow: () => ipcRenderer.invoke('window:hide'),
   quit: () => ipcRenderer.invoke('app:quit'),
   copyText: (text) => ipcRenderer.invoke('clipboard:write', text),
+  snip: () => ipcRenderer.invoke('snip'),
+  translate: (text) => ipcRenderer.invoke('translate', text),
+  hotkeyStatus: () => ipcRenderer.invoke('hotkeys:status'),
+  snipImage: () => ipcRenderer.invoke('snip:image'),
+  finishSnip: (selection, view) => ipcRenderer.invoke('snip:done', selection, view),
   exportSession: (markdown) => ipcRenderer.invoke('session:export', markdown),
   onAssistantEvent(cb) {
     const listener = (_e: IpcRendererEvent, event: AssistantEvent): void => cb(event)

@@ -1,7 +1,7 @@
 import { app, safeStorage } from 'electron'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { DEFAULT_SETTINGS, type Settings } from '@shared/types'
+import { DEFAULT_HOTKEYS, DEFAULT_SETTINGS, type Settings } from '@shared/types'
 
 const SECRET_KEYS = ['anthropicApiKey', 'sttApiKey'] as const
 
@@ -36,6 +36,8 @@ export function loadSettings(): Settings {
     }
   }
   const merged: Settings = { ...DEFAULT_SETTINGS, ...stored }
+  // Shortcuts added in later versions get their defaults.
+  merged.hotkeys = { ...DEFAULT_HOTKEYS, ...(stored.hotkeys ?? {}) }
   for (const key of SECRET_KEYS) merged[key] = decrypt(merged[key] ?? '')
 
   // Environment variables fill in keys that were never saved.

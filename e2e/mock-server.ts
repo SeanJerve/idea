@@ -20,6 +20,8 @@ export interface MockServer {
   /** Requests whose client hung up before the reply finished. */
   aborted: number
   claudeReplies: ClaudeReply[]
+  /** Replies for non-streaming (translation) requests. Default: "EN: <line>". */
+  translationReplies: string[]
   transcriptTexts: string[]
   close(): Promise<void>
 }
@@ -49,6 +51,7 @@ export async function startMockServer(): Promise<MockServer> {
     transcriptions: 0,
     aborted: 0,
     claudeReplies: [],
+    translationReplies: [],
     transcriptTexts: [],
     close: async () => {}
   }
@@ -57,6 +60,26 @@ export async function startMockServer(): Promise<MockServer> {
     const json = JSON.parse((await body(req)).toString('utf8'))
     state.messages.push(json)
     state.messageHeaders.push(req.headers)
+    if (!json.stream) {
+      // Live translation: a short, non-streaming request.
+      const line = String(json.messages[0].content).split('Line:\n')[1] ?? ''
+      const text = state.translationReplies.shift() ?? `EN: ${line}`
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(
+        JSON.stringify({
+          id: `msg_${state.messages.length}`,
+          type: 'message',
+          role: 'assistant',
+          model: json.model,
+          content: [{ type: 'text', text }],
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: 10, output_tokens: 5 }
+        })
+      )
+      return
+    }
+
     const reply = state.claudeReplies.shift() ?? {}
 
     if (reply.status && reply.status !== 200) {

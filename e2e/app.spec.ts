@@ -83,10 +83,10 @@ test('API errors become readable messages', async ({ harness }) => {
 
 test('quick actions send their built-in requests', async ({ harness }) => {
   const { win } = await harness.launch({})
-  await win.click('#btn-suggest')
-  await expect(win.locator('.exchange .q').last()).toContainText('What should I say?')
+  await win.click('#actions [data-action=suggest]')
+  await expect(win.locator('.exchange .q').last()).toContainText('Suggest reply')
   await expect(win.locator('.exchange .a strong')).toHaveCount(1)
-  await win.click('#btn-summarize')
+  await win.click('#actions [data-action=summarize]')
   await expect(win.locator('.exchange .a strong')).toHaveCount(2)
 
   expect(userContent(harness.mock.messages[0]).at(-1)?.text).toContain('Suggest what I could say next')

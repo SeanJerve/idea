@@ -34,3 +34,42 @@ export function restoreBounds(saved: Bounds | null, workAreas: Bounds[], fallbac
     y: Math.min(Math.max(saved.y, best.y), best.y + best.height - height)
   }
 }
+
+export interface Size {
+  width: number
+  height: number
+}
+
+/**
+ * Converts a drag selection made on the snip window (CSS pixels, any drag
+ * direction) into a crop rectangle on the captured image (its own pixels).
+ * Returns null for a selection too small to be intentional.
+ */
+export function selectionToCrop(sel: Bounds, view: Size, image: Size, minSize = 8): Bounds | null {
+  const x1 = Math.min(sel.x, sel.x + sel.width)
+  const y1 = Math.min(sel.y, sel.y + sel.height)
+  const x2 = Math.max(sel.x, sel.x + sel.width)
+  const y2 = Math.max(sel.y, sel.y + sel.height)
+  const cx1 = Math.max(0, x1)
+  const cy1 = Math.max(0, y1)
+  const cx2 = Math.min(view.width, x2)
+  const cy2 = Math.min(view.height, y2)
+  if (cx2 - cx1 < minSize || cy2 - cy1 < minSize) return null
+
+  const sx = image.width / view.width
+  const sy = image.height / view.height
+  const x = Math.floor(cx1 * sx)
+  const y = Math.floor(cy1 * sy)
+  return {
+    x,
+    y,
+    width: Math.min(image.width - x, Math.ceil(cx2 * sx) - x),
+    height: Math.min(image.height - y, Math.ceil(cy2 * sy) - y)
+  }
+}
+
+/** Scales a size down (never up) so its long edge fits maxEdge. */
+export function fitWithin(size: Size, maxEdge: number): Size {
+  const scale = Math.min(1, maxEdge / Math.max(size.width, size.height))
+  return { width: Math.max(1, Math.round(size.width * scale)), height: Math.max(1, Math.round(size.height * scale)) }
+}

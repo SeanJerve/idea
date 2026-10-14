@@ -1,19 +1,26 @@
 import './styles.css'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
+import { displayHotkey } from '@shared/hotkeys'
+import { MODES, getMode, type QuickAction } from '@shared/modes'
 import {
   DEFAULT_SETTINGS,
+  HOTKEY_LABELS,
   MODEL_OPTIONS,
   STT_PRESETS,
   type AskKind,
   type AssistantEvent,
   type HotkeyAction,
+  type ImageAttachment,
   type Settings,
-  type Speaker
+  type Speaker,
+  type TranscriptEntry
 } from '@shared/types'
+import { MAX_ATTACHMENTS, dataUrl, imageToAttachment, imagesFrom } from './attachments.ts'
 import { SAMPLE_RATE, StreamCapture, openMic, openSystemAudio } from './audio/capture.ts'
 import { encodeWav } from './audio/wav.ts'
 import { AutoSuggest } from './auto-suggest.ts'
+import { HotkeyEditor } from './hotkey-editor.ts'
 import { isLikelyNoise } from './speech-text.ts'
 import { QueueOverflowError, TaskQueue } from './task-queue.ts'
 import { Transcript, sessionMarkdown } from './transcript.ts'
@@ -26,9 +33,11 @@ let settings: Settings = { ...DEFAULT_SETTINGS }
 const transcript = new Transcript()
 const history: { question: string; answer: string }[] = []
 const sttQueue = new TaskQueue(3, 12)
+const translateQueue = new TaskQueue(2, 20)
+const translations = new WeakMap<TranscriptEntry, string>()
 const autoSuggest = new AutoSuggest()
-/** Summaries look at a longer stretch of the conversation than questions do. */
-const SUMMARY_MINUTES = 60
+let attachments: ImageAttachment[] = []
+let hotkeyEditor: HotkeyEditor | null = null
 
 let mic: StreamCapture | null = null
 let system: StreamCapture | null = null
@@ -88,6 +97,12 @@ function errorText(err: unknown): string {
 function renderTranscript(): void {
   const box = $('transcript')
   const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 24
+  if (transcript.entries.length === 0) {
+    box.innerHTML = listening
+      ? '<p class="hint">Listening… speech will show up here.</p>'
+      : '<p class="hint">Press the mic button to start listening.</p>'
+    return
+  }
   box.replaceChildren(
     ...transcript.entries.slice(-60).map((e) => {
       const p = document.createElement('p')
@@ -96,10 +111,31 @@ function renderTranscript(): void {
       who.className = 'who'
       who.textContent = e.speaker === 'me' ? 'Me' : 'Them'
       p.append(who, e.text)
+      const tr = translations.get(e)
+      if (tr) {
+        const t = document.createElement('span')
+        t.className = 'tr'
+        t.textContent = tr
+        p.append(t)
+      }
       return p
     })
   )
   if (atBottom) box.scrollTop = box.scrollHeight
+}
+
+function translateEntry(entry: TranscriptEntry): void {
+  if (!getMode(settings.mode).liveTranslate) return
+  translateQueue
+    .run(() => api.translate(entry.text))
+    .then((t) => {
+      if (!t) return
+      translations.set(entry, t)
+      renderTranscript()
+    })
+    .catch((err) => {
+      if (!(err instanceof QueueOverflowError)) showBanner(`Translation: ${errorText(err)}`, 'error')
+    })
 }
 
 async function handleSegment(speaker: Speaker, samples: Float32Array): Promise<void> {
@@ -110,6 +146,7 @@ async function handleSegment(speaker: Speaker, samples: Float32Array): Promise<v
     const entry = { speaker, text, at }
     if (!transcript.add(entry)) return
     renderTranscript()
+    translateEntry(entry)
     if (settings.autoSuggest) autoSuggest.onEntry(entry, Date.now())
   } catch (err) {
     // A dropped backlog clip isn't worth interrupting the user over.
@@ -124,13 +161,19 @@ function pollAutoSuggest(): void {
   if (!autoSuggest.poll(Date.now(), theyAreTalking)) return
   // Never replace something the user asked for themselves.
   if (current && !current.auto) return
-  send('suggest-reply', '', true)
+  send('suggest-reply', '', { auto: true })
 }
 
 // ---------- listening ----------
 
+function needsSpeechKey(): boolean {
+  if (settings.sttApiKey) return false
+  showBanner('Listening needs a speech-to-text key (Settings → Speech to text). Typed questions work without it.', 'error')
+  return true
+}
+
 async function startListening(): Promise<void> {
-  if (listening) return
+  if (listening || needsSpeechKey()) return
   const problems: string[] = []
 
   if (settings.captureMic) {
@@ -160,7 +203,7 @@ async function startListening(): Promise<void> {
   else hideBanner()
 
   listening = true
-  if (transcript.entries.length === 0) $('transcript').innerHTML = '<p class="hint">Listening… speech will show up here.</p>'
+  renderTranscript()
   updateListeningUi()
   requestAnimationFrame(updateMeters)
 }
@@ -179,6 +222,7 @@ async function stopListening(): Promise<void> {
   system = null
   await Promise.all(caps.map((c) => c?.stop()))
   updateListeningUi()
+  renderTranscript()
 }
 
 function toggleListening(): void {
@@ -189,7 +233,7 @@ function updateListeningUi(): void {
   $('listen-dot').classList.toggle('on', listening)
   $('listen-dot').title = listening ? 'Listening' : 'Not listening'
   $('btn-listen').classList.toggle('active', listening)
-  $('btn-listen').title = `${listening ? 'Stop' : 'Start'} listening (Ctrl+Shift+L)`
+  $('btn-listen').title = `${listening ? 'Stop' : 'Start'} listening (${displayHotkey(settings.hotkeys['toggle-listening'])})`
 }
 
 function updateMeters(): void {
@@ -203,6 +247,7 @@ function updateMeters(): void {
 
 async function toggleVoiceQuestion(): Promise<void> {
   if (!recordingQuestion) {
+    if (needsSpeechKey()) return
     voice.stop()
     let cap = mic
     if (!cap) {
@@ -218,7 +263,7 @@ async function toggleVoiceQuestion(): Promise<void> {
     cap.startRecording()
     recordingQuestion = true
     updateVoiceUi()
-    showBanner('Listening to your question… press Ctrl+Shift+A or the mic button again to send.')
+    showBanner(`Listening to your question… press ${displayHotkey(settings.hotkeys['voice-question'])} or the mic button again to send.`)
     return
   }
 
@@ -252,20 +297,81 @@ function updateVoiceUi(): void {
   $('btn-voice').classList.toggle('active', recordingQuestion)
 }
 
+// ---------- attachments ----------
+
+function renderAttachments(): void {
+  const box = $('attachments')
+  box.hidden = attachments.length === 0
+  box.replaceChildren(
+    ...attachments.map((a, i) => {
+      const chip = document.createElement('span')
+      chip.className = 'chip'
+      const img = document.createElement('img')
+      img.src = dataUrl(a)
+      img.alt = `Attached image ${i + 1}`
+      const remove = document.createElement('button')
+      remove.type = 'button'
+      remove.className = 'remove'
+      remove.title = 'Remove'
+      remove.setAttribute('aria-label', `Remove image ${i + 1}`)
+      remove.textContent = '×'
+      remove.addEventListener('click', () => {
+        attachments.splice(i, 1)
+        renderAttachments()
+      })
+      chip.append(img, remove)
+      return chip
+    })
+  )
+  $<HTMLTextAreaElement>('question').placeholder = attachments.length
+    ? 'Ask about the attached image…'
+    : 'Ask about your screen…'
+}
+
+function attach(a: ImageAttachment): void {
+  if (attachments.length >= MAX_ATTACHMENTS) {
+    showBanner(`Up to ${MAX_ATTACHMENTS} images per question.`, 'error')
+    return
+  }
+  attachments.push(a)
+  renderAttachments()
+}
+
+async function attachFiles(files: File[]): Promise<void> {
+  for (const file of files) {
+    try {
+      attach(await imageToAttachment(file))
+    } catch (err) {
+      showBanner(errorText(err), 'error')
+    }
+  }
+  $('question').focus()
+}
+
+async function snipArea(): Promise<void> {
+  try {
+    const area = await api.snip()
+    if (area) attach(area)
+    $('question').focus()
+  } catch (err) {
+    showBanner(errorText(err), 'error')
+  }
+}
+
 // ---------- asking ----------
 
 function renderMarkdown(el: HTMLElement, text: string): void {
   el.innerHTML = DOMPurify.sanitize(marked.parse(text, { async: false }))
 }
 
-function createExchange(label: string, speak: boolean): HTMLElement {
+function createExchange(label: string, speakOnly: boolean, images: number): HTMLElement {
   $('empty')?.remove()
   const wrap = document.createElement('article')
   wrap.className = 'exchange'
   const q = document.createElement('div')
   q.className = 'q'
   const qText = document.createElement('span')
-  qText.textContent = label
+  qText.textContent = images ? `${label} (+${images} image${images > 1 ? 's' : ''})` : label
   const copy = document.createElement('button')
   copy.className = 'copy'
   copy.type = 'button'
@@ -283,8 +389,8 @@ function createExchange(label: string, speak: boolean): HTMLElement {
   const a = document.createElement('div')
   a.className = 'a status'
   a.textContent = 'Starting…'
-  if (speak && settings.replyMode === 'voice') {
-    // Voice-only mode: the answer is spoken; the text stays tucked away.
+  if (speakOnly) {
+    // Voice-only: the answer is spoken; the text stays tucked away.
     const details = document.createElement('details')
     const summary = document.createElement('summary')
     summary.textContent = 'Spoken answer (show text)'
@@ -303,12 +409,6 @@ function scrollAnswers(force = false): void {
   if (force || box.scrollHeight - box.scrollTop - box.clientHeight < 80) box.scrollTop = box.scrollHeight
 }
 
-function labelFor(kind: AskKind, question: string, auto: boolean): string {
-  if (kind === 'suggest-reply') return auto ? 'They asked something. You could say:' : 'What should I say?'
-  if (kind === 'summarize') return 'Summarize the conversation'
-  return question.trim()
-}
-
 function stopCurrent(): void {
   if (!current) return
   void api.cancel(current.id)
@@ -319,27 +419,60 @@ function stopCurrent(): void {
   current = null
 }
 
-function send(kind: AskKind, question = '', auto = false): void {
+interface SendOptions {
+  auto?: boolean
+  label?: string
+  /** Transcript window in minutes, or the whole session. */
+  transcript?: number | 'all'
+  /** Read this answer aloud even in text mode. */
+  speak?: boolean
+}
+
+function defaultLabel(kind: AskKind, question: string, auto: boolean): string {
+  if (kind === 'suggest-reply') return auto ? 'They asked something. You could say:' : 'What should I say?'
+  if (kind === 'summarize') return 'Summarize the conversation'
+  return question.trim()
+}
+
+function send(kind: AskKind, question = '', opts: SendOptions = {}): void {
   if (kind === 'question' && !question.trim()) return
   stopCurrent()
   voice.stop()
-  if (!auto) autoSuggest.cancel()
+  if (!opts.auto) autoSuggest.cancel()
 
-  const label = labelFor(kind, question, auto)
-  const speak = settings.replyMode !== 'text'
+  const label = opts.label ?? defaultLabel(kind, question, Boolean(opts.auto))
+  const speak = settings.replyMode !== 'text' || Boolean(opts.speak)
+  const speakOnly = settings.replyMode === 'voice'
+  const images = opts.auto ? [] : attachments
+  if (!opts.auto) {
+    attachments = []
+    renderAttachments()
+  }
   const id = crypto.randomUUID()
-  current = { id, label, el: createExchange(label, speak), text: '', speak, auto }
-  const minutes = kind === 'summarize' ? Math.max(SUMMARY_MINUTES, settings.contextMinutes) : settings.contextMinutes
+  current = { id, label, el: createExchange(label, speakOnly, images.length), text: '', speak, auto: Boolean(opts.auto) }
+  const span = opts.transcript ?? settings.contextMinutes
+  const entries = span === 'all' ? [...transcript.entries] : transcript.recent(span, Date.now())
 
   api
     .ask({
       id,
       kind,
       question,
-      transcript: transcript.recent(minutes, Date.now()),
+      modeId: settings.mode,
+      images,
+      spoken: speak,
+      transcript: entries,
       history: history.slice(-4)
     })
     .catch((err) => onAssistantEvent({ id, type: 'error', message: errorText(err) }))
+}
+
+function runAction(action: QuickAction): void {
+  send(action.kind ?? 'question', action.prompt, {
+    label: action.label,
+    transcript: action.transcript,
+    speak: action.speak
+  })
 }
 
 function onAssistantEvent(e: AssistantEvent): void {
@@ -377,6 +510,41 @@ function onAssistantEvent(e: AssistantEvent): void {
   }
 }
 
+// ---------- modes ----------
+
+function renderMode(): void {
+  const mode = getMode(settings.mode)
+  $<HTMLSelectElement>('mode-select').value = mode.id
+  $('mode-hint').textContent = mode.hint
+  $('actions').replaceChildren(
+    ...mode.actions.map((action) => {
+      const b = document.createElement('button')
+      b.type = 'button'
+      b.textContent = action.label
+      b.dataset.action = action.id
+      if (action.speak) b.title = 'Answer is read aloud'
+      b.addEventListener('click', () => runAction(action))
+      return b
+    })
+  )
+}
+
+function renderShortcutHelp(): void {
+  const list = $('shortcut-list')
+  if (!list) return
+  list.replaceChildren(
+    ...(Object.keys(HOTKEY_LABELS) as HotkeyAction[])
+      .filter((a) => settings.hotkeys[a])
+      .map((a) => {
+        const li = document.createElement('li')
+        const kbd = document.createElement('kbd')
+        kbd.textContent = displayHotkey(settings.hotkeys[a])
+        li.append(kbd, ` ${HOTKEY_LABELS[a].toLowerCase()}`)
+        return li
+      })
+  )
+}
+
 // ---------- settings ----------
 
 function settingsForm(): HTMLFormElement {
@@ -393,11 +561,11 @@ function fillVoices(): void {
   select.value = settings.voiceName
 }
 
-function openSettings(): void {
+async function openSettings(): Promise<void> {
   const form = settingsForm()
   for (const [key, value] of Object.entries(settings)) {
     const field = form.elements.namedItem(key) as HTMLInputElement | null
-    if (!field) continue
+    if (!field || typeof value === 'object') continue
     if (field.type === 'checkbox') field.checked = Boolean(value)
     else field.value = String(value)
   }
@@ -406,6 +574,8 @@ function openSettings(): void {
   )
   $<HTMLSelectElement>('stt-preset').value = preset ? preset[0] : 'Custom'
   fillVoices()
+  $('settings-error').hidden = true
+  hotkeyEditor?.render(settings.hotkeys, await api.hotkeyStatus())
   $('view-main').hidden = true
   $('view-settings').hidden = false
 }
@@ -425,17 +595,37 @@ async function saveSettingsForm(): Promise<void> {
     else if (typeof DEFAULT_SETTINGS[key] === 'number') patch[key] = Number(field.value) || DEFAULT_SETTINGS[key]
     else patch[key] = field.value.trim()
   }
+  const keys = hotkeyEditor?.collect()
+  if (keys && 'error' in keys) {
+    $('settings-error').textContent = keys.error
+    $('settings-error').hidden = false
+    return
+  }
+  if (keys) patch.hotkeys = keys.hotkeys
+
   const before = settings
   settings = await api.saveSettings(patch as Partial<Settings>)
   $<HTMLSelectElement>('quick-reply-mode').value = settings.replyMode
-  closeSettings()
+  renderMode()
+  renderShortcutHelp()
+  updateListeningUi()
+
+  const failed = (await api.hotkeyStatus()).filter((s) => s.error && s.error !== 'Off')
+  if (failed.length) {
+    // Stay in settings so the warnings next to each shortcut are visible.
+    hotkeyEditor?.render(settings.hotkeys, await api.hotkeyStatus())
+    $('settings-error').textContent = 'Saved, but some shortcuts could not be set. See the notes below.'
+    $('settings-error').hidden = false
+  } else {
+    closeSettings()
+  }
 
   if (listening && (before.captureMic !== settings.captureMic || before.captureSystem !== settings.captureSystem)) {
     await stopListening()
     await startListening()
   }
   if (!settings.anthropicApiKey) showBanner('Add your Anthropic API key to ask questions.', 'error')
-  else hideBanner()
+  else if (!failed.length) hideBanner()
 }
 
 // ---------- wiring ----------
@@ -455,6 +645,9 @@ function onHotkey(action: HotkeyAction): void {
     case 'toggle-listening':
       toggleListening()
       break
+    case 'snip':
+      void snipArea()
+      break
     case 'click-through':
       // Handled in the main process, which reports the new state via onClickThrough.
       break
@@ -463,8 +656,9 @@ function onHotkey(action: HotkeyAction): void {
 
 function onClickThrough(on: boolean): void {
   document.body.classList.toggle('click-through', on)
-  if (on) showBanner('Click-through is on: clicks pass to the window behind. Ctrl+Shift+K turns it off.')
-  else hideBanner()
+  if (on) {
+    showBanner(`Click-through is on: clicks pass to the window behind. ${displayHotkey(settings.hotkeys['click-through'])} turns it off.`)
+  } else hideBanner()
 }
 
 let emptyState: Node | null = null
@@ -475,8 +669,11 @@ function clearSession(): void {
   autoSuggest.cancel()
   transcript.clear()
   history.length = 0
+  attachments = []
+  renderAttachments()
   renderTranscript()
   if (emptyState) $('answers').replaceChildren(emptyState.cloneNode(true))
+  renderShortcutHelp()
   hideBanner()
 }
 
@@ -507,30 +704,54 @@ function wire(): void {
       $<HTMLFormElement>('ask-form').requestSubmit()
     }
   })
+  question.addEventListener('paste', (e) => {
+    const files = imagesFrom(e.clipboardData?.items)
+    if (files.length === 0) return
+    e.preventDefault()
+    void attachFiles(files)
+  })
   $<HTMLFormElement>('ask-form').addEventListener('submit', (e) => {
     e.preventDefault()
+    if (!question.value.trim() && attachments.length) question.value = 'What is this?'
     send('question', question.value)
     question.value = ''
     autosize()
   })
 
+  // Drop image files anywhere on the overlay.
+  document.addEventListener('dragover', (e) => {
+    if (e.dataTransfer?.types.includes('Files')) {
+      e.preventDefault()
+      document.body.classList.add('dropping')
+    }
+  })
+  document.addEventListener('dragleave', (e) => {
+    if (!e.relatedTarget) document.body.classList.remove('dropping')
+  })
+  document.addEventListener('drop', (e) => {
+    e.preventDefault()
+    document.body.classList.remove('dropping')
+    const files = imagesFrom(e.dataTransfer?.files)
+    if (files.length) void attachFiles(files)
+  })
+
   $('btn-listen').addEventListener('click', toggleListening)
   $('btn-voice').addEventListener('click', () => void toggleVoiceQuestion())
-  $('btn-suggest').addEventListener('click', () => send('suggest-reply'))
-  $('btn-summarize').addEventListener('click', () => send('summarize'))
+  $('btn-snip').addEventListener('click', () => void snipArea())
   $('btn-hide').addEventListener('click', () => void api.hideWindow())
   $('btn-export').addEventListener('click', () => void exportSession())
   $('btn-clear').addEventListener('click', () => {
     if (transcript.entries.length === 0 && history.length === 0) return
     if (confirm('Clear the transcript and answers?')) clearSession()
   })
-  $('btn-settings').addEventListener('click', () => ($('view-settings').hidden ? openSettings() : closeSettings()))
+  $('btn-settings').addEventListener('click', () => void ($('view-settings').hidden ? openSettings() : closeSettings()))
   $('btn-settings-cancel').addEventListener('click', closeSettings)
   $('btn-quit').addEventListener('click', () => void api.quit())
   settingsForm().addEventListener('submit', (e) => {
     e.preventDefault()
     void saveSettingsForm()
   })
+  hotkeyEditor = new HotkeyEditor($('hotkey-rows'))
 
   const presetSelect = $<HTMLSelectElement>('stt-preset')
   presetSelect.replaceChildren(...Object.keys(STT_PRESETS).map((n) => new Option(n, n)), new Option('Custom', 'Custom'))
@@ -541,7 +762,16 @@ function wire(): void {
     ;(form.elements.namedItem('sttBaseUrl') as HTMLInputElement).value = preset.sttBaseUrl
     ;(form.elements.namedItem('sttModel') as HTMLInputElement).value = preset.sttModel
   })
-  $<HTMLSelectElement>('model-select').replaceChildren(...MODEL_OPTIONS.map((m) => new Option(m, m)))
+  for (const id of ['model-select', 'translate-model-select']) {
+    $<HTMLSelectElement>(id).replaceChildren(...MODEL_OPTIONS.map((m) => new Option(m, m)))
+  }
+
+  const modeSelect = $<HTMLSelectElement>('mode-select')
+  modeSelect.replaceChildren(...MODES.map((m) => new Option(m.name, m.id)))
+  modeSelect.addEventListener('change', async () => {
+    settings = await api.saveSettings({ mode: modeSelect.value })
+    renderMode()
+  })
 
   const quickMode = $<HTMLSelectElement>('quick-reply-mode')
   quickMode.addEventListener('change', async () => {
@@ -550,7 +780,7 @@ function wire(): void {
   })
 
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return
+    if (e.key !== 'Escape' || (e.target as HTMLElement).closest('.hotkey')) return
     if (speechSynthesis.speaking) voice.stop()
     else if (!$('view-settings').hidden) closeSettings()
     else void api.hideWindow()
@@ -567,12 +797,23 @@ function wire(): void {
 }
 
 async function init(): Promise<void> {
-  emptyState = $('empty').cloneNode(true)
   wire()
   settings = await api.getSettings()
   $<HTMLSelectElement>('quick-reply-mode').value = settings.replyMode
+  renderMode()
+  renderShortcutHelp()
+  emptyState = $('empty').cloneNode(true)
+  updateListeningUi()
   if (!settings.anthropicApiKey || !settings.sttApiKey) {
     showBanner('Welcome! Open Settings (gear icon) to add your API keys.')
+    return
+  }
+  const failed = (await api.hotkeyStatus()).filter((s) => s.error && s.error !== 'Off')
+  if (failed.length) {
+    showBanner(
+      `Some shortcuts are taken by other apps: ${failed.map((f) => displayHotkey(f.accelerator)).join(', ')}. Change them in Settings.`,
+      'error'
+    )
   }
 }
 

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { buildRequest } from '@shared/request'
+import { parseTranslation } from '@shared/prompt'
+import { buildRequest, buildTranslateRequest } from '@shared/request'
 import type { AskRequest, AssistantEvent, Settings } from '@shared/types'
 
 const running = new Map<string, AbortController>()
@@ -62,4 +63,15 @@ export async function ask(
   } finally {
     running.delete(req.id)
   }
+}
+
+/** Translates one transcript line; null when it's already in the target language. */
+export async function translate(text: string, settings: Settings): Promise<string | null> {
+  if (!settings.anthropicApiKey) throw new Error('Add your Anthropic API key in Settings.')
+  const language = settings.replyLanguage.trim() || 'English'
+  const client = new Anthropic({ apiKey: settings.anthropicApiKey })
+  const message = await client.beta.messages.create(buildTranslateRequest(text, language, settings.translateModel))
+  if (message.stop_reason === 'refusal') return null
+  const reply = message.content.map((b) => (b.type === 'text' ? b.text : '')).join('')
+  return parseTranslation(reply, text)
 }

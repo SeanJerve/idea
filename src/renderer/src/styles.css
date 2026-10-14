@@ -349,3 +349,93 @@ select:focus {
   gap: 6px;
   margin-top: 16px;
 }
+
+.mode-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.mode-row select {
+  font-size: 12px;
+  padding: 3px 6px;
+}
+.mode-hint {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.quick {
+  flex-wrap: wrap;
+}
+.tip {
+  font-size: 12px;
+}
+
+.attachments {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.attachments[hidden] {
+  display: none;
+}
+.chip {
+  position: relative;
+}
+.chip img {
+  display: block;
+  height: 44px;
+  max-width: 96px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.chip .remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  line-height: 14px;
+  border-radius: 50%;
+  font-size: 13px;
+}
+body.dropping .shell {
+  border-color: var(--accent);
+  border-style: dashed;
+}
+
+.transcript .tr {
+  display: block;
+  color: var(--muted);
+  font-style: italic;
+  padding-left: 12px;
+}
+
+.hotkey {
+  display: grid !important;
+  grid-template-columns: 1fr 150px;
+  align-items: center;
+}
+.hotkey input {
+  cursor: pointer;
+  text-align: center;
+}
+.hotkey small {
+  grid-column: 1 / -1;
+}
+.warn,
+.settings-error {
+  color: var(--danger);
+}
+.settings .hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+}
