@@ -120,3 +120,10 @@ test('missing text field yields an empty string', async () => {
   responses = [{ status: 200, body: '{}' }]
   assert.equal(await transcribe(wav, settings(), fast), '')
 })
+
+test('refuses to send the key over cleartext http to a remote host', async () => {
+  await assert.rejects(
+    transcribe(wav, { ...settings(), sttBaseUrl: 'http://api.example.com/v1' }, fast),
+    /https/
+  )
+})

@@ -89,9 +89,13 @@ To build an installer: `npm run dist:win`. The `.exe` lands in `dist/`.
 - **Translation speed.** Live translation makes one small request per line. Settings → *Live translation model* → `claude-haiku-5-5` makes it faster and much cheaper.
 - **Cost.** Speech-to-text runs only while you're listening and only on speech, not silence (OpenAI is about $0.003 per minute of speech). Claude is called only when you ask, with one screenshot and a few minutes of transcript.
 
-## Privacy and consent
+## Privacy and security
 
-Audio and screenshots are sent to the API providers you configure. Nothing is stored on disk except your settings and any session you choose to save. The transcript lives in memory and is gone when you quit.
+Audio and screenshots are sent only to the API providers you configure (Anthropic and your speech-to-text service); there's no server of ours in between. Nothing is stored on disk except your settings and any session you choose to save. The transcript lives in memory and is gone when you quit.
+
+API keys are encrypted at rest with Windows' credential protection, and the speech-to-text key is refused over plain `http` to a remote host so it can't be sent in the clear. The window that renders answers is sandboxed, makes no network calls of its own, and can't navigate away from the app. See [SECURITY.md](SECURITY.md) for the full picture.
+
+## Consent
 
 Recording or transcribing other people can require their consent; in some places all parties must agree. Let people know when you're transcribing a call. Many employers and schools forbid AI help during interviews and exams.
 

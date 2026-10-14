@@ -16,7 +16,8 @@ import {
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parseHotkey } from '@shared/hotkeys'
-import type { AskRequest, AssistantEvent, HotkeyAction, HotkeyStatus, Settings } from '@shared/types'
+import type { AssistantEvent, HotkeyAction, HotkeyStatus, Settings } from '@shared/types'
+import { LIMITS, sanitizeSettingsPatch, validateAskRequest } from '@shared/validate'
 import { restoreBounds } from '@shared/window'
 import { ask, cancel, translate } from './assistant'
 import { captureScreen } from './screen'
@@ -26,6 +27,12 @@ import { transcribe } from './transcribe'
 
 // Lets tests (and portable setups) keep settings somewhere other than %APPDATA%.
 if (process.env['SCREEN_COPILOT_USER_DATA']) app.setPath('userData', process.env['SCREEN_COPILOT_USER_DATA'])
+
+/** The only pages the app ever loads. Anything else is a navigation we refuse. */
+function isOwnPage(url: string): boolean {
+  if (process.env['ELECTRON_RENDERER_URL']) return url.startsWith(process.env['ELECTRON_RENDERER_URL'])
+  return url.startsWith('file://')
+}
 
 let overlay: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -60,6 +67,10 @@ function createOverlay(): BrowserWindow {
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      spellcheck: false,
+      devTools: !app.isPackaged,
       // Keep listening and speaking while the overlay is hidden.
       backgroundThrottling: false
     }
@@ -70,19 +81,6 @@ function createOverlay(): BrowserWindow {
   win.once('ready-to-show', () => {
     if (!startHidden) win.show()
     startHidden = false
-  })
-
-  // Links in answers open in the browser, never inside the overlay.
-  const openExternal = (url: string): void => {
-    if (/^https?:\/\//.test(url)) void shell.openExternal(url)
-  }
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    openExternal(url)
-    return { action: 'deny' }
-  })
-  win.webContents.on('will-navigate', (event, url) => {
-    event.preventDefault()
-    openExternal(url)
   })
 
   if (process.env['ELECTRON_RENDERER_URL']) {
@@ -206,36 +204,51 @@ async function runSnip(): Promise<Awaited<ReturnType<typeof snip>>> {
 
 function registerIpc(): void {
   ipcMain.handle('settings:get', () => loadSettings())
-  ipcMain.handle('settings:save', (_e, patch: Partial<Settings>) => {
+  ipcMain.handle('settings:save', (_e, patch: unknown) => {
     const before = loadSettings()
-    const next = saveSettings(patch)
+    const next = saveSettings(sanitizeSettingsPatch(patch))
     applyWindowSettings(next)
     if (JSON.stringify(before.hotkeys) !== JSON.stringify(next.hotkeys)) registerHotkeys(next.hotkeys)
     if (before.launchAtLogin !== next.launchAtLogin) applyLoginItem(next.launchAtLogin)
     return next
   })
   ipcMain.handle('hotkeys:status', () => hotkeyStatus)
-  ipcMain.handle('translate', (_e, text: string) => translate(text, loadSettings()))
+  ipcMain.handle('translate', (_e, text: unknown) => {
+    const line = typeof text === 'string' ? text.slice(0, LIMITS.translateLine) : ''
+    return line ? translate(line, loadSettings()) : null
+  })
   ipcMain.handle('snip', () => runSnip())
-  ipcMain.handle('transcribe', (_e, wav: ArrayBuffer) => transcribe(wav, loadSettings()))
-  ipcMain.handle('assistant:ask', async (event, req: AskRequest) => {
+  ipcMain.handle('transcribe', (_e, wav: unknown) => {
+    if (!(wav instanceof ArrayBuffer) || wav.byteLength === 0 || wav.byteLength > LIMITS.wavBytes) {
+      throw new Error('Invalid audio clip.')
+    }
+    return transcribe(wav, loadSettings())
+  })
+  ipcMain.handle('assistant:ask', async (event, raw: unknown) => {
+    const req = validateAskRequest(raw)
+    if (!req) return
     const settings = loadSettings()
     const emit = (e: AssistantEvent): void => {
       if (!event.sender.isDestroyed()) event.sender.send('assistant:event', e)
     }
     let screenshot: string | null = null
     // An area the user picked (or an image they added) replaces the full screenshot.
-    if (settings.includeScreenshot && (req.images ?? []).length === 0) {
+    if (settings.includeScreenshot && req.images.length === 0) {
       emit({ id: req.id, type: 'status', text: 'Looking at your screen…' })
       screenshot = await captureScreen(overlay, settings.hideFromCapture).catch(() => null)
     }
     emit({ id: req.id, type: 'status', text: 'Thinking…' })
     await ask(req, settings, screenshot, emit)
   })
-  ipcMain.handle('assistant:cancel', (_e, id: string) => cancel(id))
+  ipcMain.handle('assistant:cancel', (_e, id: unknown) => {
+    if (typeof id === 'string' && id.length <= 64) cancel(id)
+  })
   ipcMain.handle('window:hide', () => overlay?.hide())
-  ipcMain.handle('clipboard:write', (_e, text: string) => clipboard.writeText(text))
-  ipcMain.handle('session:export', async (_e, markdown: string) => {
+  ipcMain.handle('clipboard:write', (_e, text: unknown) => {
+    if (typeof text === 'string') clipboard.writeText(text.slice(0, LIMITS.clipboard))
+  })
+  ipcMain.handle('session:export', async (_e, markdown: unknown) => {
+    if (typeof markdown !== 'string' || markdown.length > LIMITS.exportBytes) return null
     const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-')
     const options = {
       title: 'Save session',
@@ -263,12 +276,70 @@ function registerSystemAudio(): void {
   })
 }
 
+/** Defense in depth: lock the renderer down to its own pages, the mic, and the two APIs. */
+function hardenSession(): void {
+  const ses = session.defaultSession
+
+  // The renderer only needs the microphone (for voice questions) and display capture
+  // (routed through the handler above). Everything else — geolocation, HID, serial,
+  // notifications, opening external apps — is denied without a prompt.
+  const allowed = new Set(['media', 'display-capture'])
+  ses.setPermissionRequestHandler((_wc, permission, done) => done(allowed.has(permission)))
+  ses.setPermissionCheckHandler((_wc, permission) => allowed.has(permission))
+
+  // The renderer itself makes no outbound requests — Claude and speech-to-text calls
+  // run in the main process. Allow only its own assets, data: images, and the API
+  // hosts (requested from the main process, which shares this session), and block the rest.
+  const apiHostSuffixes = ['.anthropic.com', '.openai.com', '.groq.com']
+  ses.webRequest.onBeforeRequest((details, cb) => {
+    const url = details.url
+    if (
+      isOwnPage(url) ||
+      url.startsWith('devtools:') ||
+      url.startsWith('blob:') ||
+      url.startsWith('data:') ||
+      url.startsWith('about:')
+    ) {
+      cb({})
+      return
+    }
+    try {
+      const host = new URL(url).hostname.toLowerCase()
+      const userStt = new URL(loadSettings().sttBaseUrl).hostname.toLowerCase()
+      if (host === userStt || apiHostSuffixes.some((s) => host === s.slice(1) || host.endsWith(s))) {
+        cb({})
+        return
+      }
+    } catch {
+      /* fall through to cancel */
+    }
+    cb({ cancel: true })
+  })
+}
+
+/** Refuse navigation away from our pages and refuse to open child windows. */
+function guardContents(contents: Electron.WebContents): void {
+  contents.on('will-navigate', (event, url) => {
+    if (!isOwnPage(url)) {
+      event.preventDefault()
+      if (/^https?:\/\//.test(url)) void shell.openExternal(url)
+    }
+  })
+  contents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//.test(url)) void shell.openExternal(url)
+    return { action: 'deny' }
+  })
+  contents.on('will-attach-webview', (event) => event.preventDefault())
+}
+
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   app.on('second-instance', () => showOverlay(true))
+  app.on('web-contents-created', (_e, contents) => guardContents(contents))
   app.whenReady().then(() => {
     app.setAppUserModelId('com.seanjerve.screencopilot')
+    hardenSession()
     registerIpc()
     registerSnipIpc()
     registerSystemAudio()

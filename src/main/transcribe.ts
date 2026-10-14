@@ -1,4 +1,5 @@
 import type { Settings } from '@shared/types'
+import { isSafeSttBaseUrl } from '../shared/validate.ts'
 
 export interface TranscribeOptions {
   /** Extra attempts after a rate limit, server error, or network failure. */
@@ -52,6 +53,9 @@ export async function transcribe(
   opts: TranscribeOptions = {}
 ): Promise<string> {
   if (!settings.sttApiKey) throw new Error('Add a speech-to-text API key in Settings.')
+  if (!isSafeSttBaseUrl(settings.sttBaseUrl)) {
+    throw new Error('The speech-to-text URL must use https (or be on your own machine), so your key is never sent in the clear.')
+  }
   const retries = opts.retries ?? 2
   const delay = opts.retryDelayMs ?? 600
 
