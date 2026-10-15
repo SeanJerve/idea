@@ -78,7 +78,13 @@ test('an oversized image attachment is rejected by the main process', async ({ h
 })
 
 test('non-app navigation is refused', async ({ harness }) => {
-  const { win } = await harness.launch({})
+  const { app, win } = await harness.launch({})
+  // A refused external link opens in the real browser; stub that so the headless
+  // CI runner doesn't spawn xdg-open and hang teardown. We're testing the overlay
+  // doesn't navigate, not the hand-off to the browser.
+  await app.evaluate(({ shell }) => {
+    shell.openExternal = async () => {}
+  })
   const url = win.url()
   await win.evaluate(() => {
     const a = document.createElement('a')
