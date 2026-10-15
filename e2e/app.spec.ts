@@ -266,12 +266,12 @@ test('theme follows the setting', async ({ harness }) => {
   const { win } = await harness.launch({ theme: 'light' })
   await expect(win.locator('html')).toHaveAttribute('data-theme', 'light')
   const bg = await win.locator('.shell').evaluate((el) => getComputedStyle(el).backgroundColor)
-  expect(bg).toBe('rgb(255, 255, 255)')
+  expect(bg).toBe('rgb(244, 243, 238)') // Claude paper
 
   await win.click('#btn-settings')
   await win.selectOption('select[name=theme]', 'dark')
   await win.click('#settings-form button[type=submit]')
   await expect(win.locator('html')).toHaveAttribute('data-theme', 'dark')
   const dark = await win.locator('.shell').evaluate((el) => getComputedStyle(el).backgroundColor)
-  expect(dark).toBe('rgb(11, 11, 11)')
+  expect(dark).toBe('rgb(31, 30, 28)') // warm near-black
 })

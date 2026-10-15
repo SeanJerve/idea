@@ -43,7 +43,7 @@ Pick a **mode** at the bottom of the overlay. Each one tunes the answers and giv
 - **Copy, save, clear.** Copy any answer, save the whole session (transcript + answers) as a Markdown file, or wipe it.
 - **Remembers its place.** The overlay reopens where you left it (and comes back on screen if that monitor is gone).
 - **Replies your way.** Show them in the overlay, speak them with Windows' built-in voices, or both.
-- **Quiet, black-and-white design.** Follows Windows light or dark mode (or pick one in Settings). The overlay floats on top and is draggable and resizable. It is left out of its own screenshots and, if you choose, out of screen shares.
+- **Clean, Claude-inspired design.** Warm paper and coral in light mode, a warm near-black in dark; follows Windows automatically, or pick a theme in Settings. The overlay floats on top and is draggable and resizable. It is left out of its own screenshots and, if you choose, out of screen shares.
 
 ## Hotkeys
 
