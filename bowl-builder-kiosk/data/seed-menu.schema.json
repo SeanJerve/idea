@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "seed-menu.schema.json",
+  "title": "Bowl Lab seed menu",
+  "description": "Canonical menu data. Nutrition values are per ONE Regular portion. Money is integer minor units (cents).",
+  "type": "object",
+  "required": ["schemaVersion", "brand", "location", "portionMultipliers", "nutrients", "ingredients", "products", "signatures"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "schemaVersion": {"const": 1},
+    "note": {"type": "string"},
+    "brand": {
+      "type": "object",
+      "required": ["name", "defaultLocale", "locales"],
+      "properties": {
+        "name": {"type": "string"},
+        "defaultLocale": {"$ref": "#/$defs/locale"},
+        "locales": {"type": "array", "items": {"$ref": "#/$defs/locale"}, "minItems": 1}
+      }
+    },
+    "location": {
+      "type": "object",
+      "required": ["name", "currency", "taxMode", "taxRateBps", "timezone", "allergenRegime", "orderPrefix"],
+      "properties": {
+        "name": {"type": "string"},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+        "taxMode": {"enum": ["exclusive", "inclusive"]},
+        "taxRateBps": {"type": "integer", "minimum": 0, "maximum": 5000},
+        "timezone": {"type": "string"},
+        "allergenRegime": {"enum": ["US9", "EU14", "CA"]},
+        "orderPrefix": {"type": "string", "pattern": "^[A-Z]{1,2}$"}
+      }
+    },
+    "portionMultipliers": {
+      "type": "object",
+      "required": ["light", "half", "regular", "extra", "double"],
+      "additionalProperties": {"type": "number", "exclusiveMinimum": 0}
+    },
+    "nutrients": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "name", "unit"],
+        "properties": {
+          "code": {"$ref": "#/$defs/code"},
+          "name": {"type": "string"},
+          "unit": {"enum": ["kcal", "g", "mg", "mcg"]},
+          "dailyValue": {"type": ["number", "null"]}
+        }
+      }
+    },
+    "ingredients": {"type": "array", "items": {"$ref": "#/$defs/ingredient"}, "minItems": 1},
+    "products": {"type": "array", "items": {"oneOf": [{"$ref": "#/$defs/configurableProduct"}, {"$ref": "#/$defs/simpleProduct"}]}},
+    "signatures": {"type": "array", "items": {"$ref": "#/$defs/signature"}}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "locale": {"type": "string", "pattern": "^[a-z]{2}(-[A-Z]{2})?$"},
+    "code": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+    "slug": {"type": "string", "pattern": "^[a-z0-9-]{2,60}$"},
+    "i18n": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "string", "minLength": 1}},
+    "money": {"type": "integer", "minimum": 0},
+    "portion": {"enum": ["light", "half", "regular", "extra", "double"]},
+    "nutrition": {
+      "type": "object",
+      "required": ["energy_kcal", "protein_g", "carbohydrate_g", "fat_g", "fiber_g", "sugars_g", "added_sugars_g", "sodium_mg"],
+      "additionalProperties": {"type": "number", "minimum": 0}
+    },
+    "ingredient": {
+      "type": "object",
+      "required": ["id", "name", "color", "servingGrams", "nutritionPerRegular", "nutritionSource", "allergens", "dietTags", "badges"],
+      "properties": {
+        "id": {"$ref": "#/$defs/slug"},
+        "name": {"$ref": "#/$defs/i18n"},
+        "color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+        "servingGrams": {"type": "number", "minimum": 0},
+        "nutritionPerRegular": {"$ref": "#/$defs/nutrition"},
+        "nutritionSource": {"enum": ["lab", "recipe_calc", "supplier", "estimate"]},
+        "allergens": {"type": "array", "items": {"$ref": "#/$defs/code"}, "uniqueItems": true},
+        "dietTags": {"type": "array", "items": {"$ref": "#/$defs/code"}, "uniqueItems": true},
+        "badges": {"type": "array", "items": {"$ref": "#/$defs/code"}}
+      },
+      "additionalProperties": false
+    },
+    "groupItem": {
+      "type": "object",
+      "required": ["ingredientId", "allowedPortions", "priceCents", "premium"],
+      "properties": {
+        "ingredientId": {"$ref": "#/$defs/slug"},
+        "allowedPortions": {"type": "array", "items": {"$ref": "#/$defs/portion"}, "contains": {"const": "regular"}, "uniqueItems": true},
+        "priceCents": {"$ref": "#/$defs/money"},
+        "basePriceCents": {"$ref": "#/$defs/money"},
+        "portionPriceDeltasCents": {"type": "object", "additionalProperties": {"$ref": "#/$defs/money"}},
+        "premium": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "group": {
+      "type": "object",
+      "required": ["id", "name", "min", "max", "includedCount", "extraPriceCents", "items"],
+      "properties": {
+        "id": {"$ref": "#/$defs/slug"},
+        "name": {"$ref": "#/$defs/i18n"},
+        "min": {"type": "integer", "minimum": 0},
+        "max": {"type": "integer", "minimum": 1},
+        "includedCount": {"type": "integer", "minimum": 0},
+        "extraPriceCents": {"$ref": "#/$defs/money"},
+        "setsBasePrice": {"type": "boolean"},
+        "halfAndHalf": {"type": "boolean"},
+        "allowOnSide": {"type": "boolean"},
+        "items": {"type": "array", "items": {"$ref": "#/$defs/groupItem"}, "minItems": 1}
+      },
+      "additionalProperties": false
+    },
+    "configurableProduct": {
+      "type": "object",
+      "required": ["id", "kind", "name", "groups"],
+      "properties": {
+        "id": {"$ref": "#/$defs/slug"},
+        "kind": {"const": "configurable"},
+        "name": {"$ref": "#/$defs/i18n"},
+        "groups": {"type": "array", "items": {"$ref": "#/$defs/group"}, "minItems": 1}
+      },
+      "additionalProperties": false
+    },
+    "simpleProduct": {
+      "type": "object",
+      "required": ["id", "kind", "name", "priceCents", "nutrition", "allergens", "dietTags"],
+      "properties": {
+        "id": {"$ref": "#/$defs/slug"},
+        "kind": {"const": "simple"},
+        "name": {"$ref": "#/$defs/i18n"},
+        "priceCents": {"$ref": "#/$defs/money"},
+        "nutrition": {"$ref": "#/$defs/nutrition"},
+        "allergens": {"type": "array", "items": {"$ref": "#/$defs/code"}},
+        "dietTags": {"type": "array", "items": {"$ref": "#/$defs/code"}}
+      },
+      "additionalProperties": false
+    },
+    "signature": {
+      "type": "object",
+      "required": ["id", "productId", "name", "badges", "lines"],
+      "properties": {
+        "id": {"$ref": "#/$defs/slug"},
+        "productId": {"$ref": "#/$defs/slug"},
+        "name": {"$ref": "#/$defs/i18n"},
+        "badges": {"type": "array", "items": {"$ref": "#/$defs/code"}},
+        "lines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["ingredientId", "portion"],
+            "properties": {"ingredientId": {"$ref": "#/$defs/slug"}, "portion": {"$ref": "#/$defs/portion"}, "onSide": {"type": "boolean"}},
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

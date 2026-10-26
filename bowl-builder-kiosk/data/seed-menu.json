@@ -1,0 +1,1612 @@
+{
+  "$schema": "./seed-menu.schema.json",
+  "schemaVersion": 1,
+  "note": "Development estimates. Replace with recipe-calculated or lab-tested values before launch. Nutrition is per ONE Regular portion.",
+  "brand": {
+    "name": "Bowl Lab",
+    "defaultLocale": "en",
+    "locales": [
+      "en",
+      "es"
+    ]
+  },
+  "location": {
+    "name": "Bowl Lab Downtown",
+    "currency": "USD",
+    "taxMode": "exclusive",
+    "taxRateBps": 800,
+    "timezone": "America/New_York",
+    "allergenRegime": "US9",
+    "orderPrefix": "A"
+  },
+  "portionMultipliers": {
+    "light": 0.5,
+    "half": 0.5,
+    "regular": 1,
+    "extra": 1.5,
+    "double": 2
+  },
+  "nutrients": [
+    {
+      "code": "energy_kcal",
+      "name": "Calories",
+      "unit": "kcal",
+      "dailyValue": 2000
+    },
+    {
+      "code": "protein_g",
+      "name": "Protein",
+      "unit": "g",
+      "dailyValue": 50
+    },
+    {
+      "code": "carbohydrate_g",
+      "name": "Total carbohydrate",
+      "unit": "g",
+      "dailyValue": 275
+    },
+    {
+      "code": "fat_g",
+      "name": "Total fat",
+      "unit": "g",
+      "dailyValue": 78
+    },
+    {
+      "code": "fiber_g",
+      "name": "Dietary fiber",
+      "unit": "g",
+      "dailyValue": 28
+    },
+    {
+      "code": "sugars_g",
+      "name": "Total sugars",
+      "unit": "g",
+      "dailyValue": null
+    },
+    {
+      "code": "added_sugars_g",
+      "name": "Added sugars",
+      "unit": "g",
+      "dailyValue": 50
+    },
+    {
+      "code": "sodium_mg",
+      "name": "Sodium",
+      "unit": "mg",
+      "dailyValue": 2300
+    }
+  ],
+  "ingredients": [
+    {
+      "id": "white-rice",
+      "name": {
+        "en": "Jasmine White Rice",
+        "es": "Arroz blanco jazmín"
+      },
+      "color": "#EFE9D8",
+      "servingGrams": 150,
+      "nutritionPerRegular": {
+        "energy_kcal": 195,
+        "protein_g": 4,
+        "carbohydrate_g": 42,
+        "fat_g": 0.5,
+        "fiber_g": 0.6,
+        "sugars_g": 0,
+        "added_sugars_g": 0,
+        "sodium_mg": 300
+      },
+      "nutritionSource": "estimate",
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "brown-rice",
+      "name": {
+        "en": "Brown Rice",
+        "es": "Arroz integral"
+      },
+      "color": "#B88B5C",
+      "servingGrams": 150,
+      "nutritionPerRegular": {
+        "energy_kcal": 170,
+        "protein_g": 4,
+        "carbohydrate_g": 35,
+        "fat_g": 1.5,
+        "fiber_g": 2.7,
+        "sugars_g": 0.5,
+        "added_sugars_g": 0,
+        "sodium_mg": 300
+      },
+      "nutritionSource": "estimate",
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "quinoa",
+      "name": {
+        "en": "Quinoa",
+        "es": "Quinoa"
+      },
+      "color": "#D8C182",
+      "servingGrams": 150,
+      "nutritionPerRegular": {
+        "energy_kcal": 180,
+        "protein_g": 6.5,
+        "carbohydrate_g": 32,
+        "fat_g": 3,
+        "fiber_g": 4,
+        "sugars_g": 1,
+        "added_sugars_g": 0,
+        "sodium_mg": 250
+      },
+      "nutritionSource": "estimate",
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "greens",
+      "name": {
+        "en": "Mixed Greens",
+        "es": "Hojas verdes mixtas"
+      },
+      "color": "#5E9F45",
+      "servingGrams": 75,
+      "nutritionPerRegular": {
+        "energy_kcal": 15,
+        "protein_g": 1,
+        "carbohydrate_g": 3,
+        "fat_g": 0,
+        "fiber_g": 1.5,
+        "sugars_g": 1,
+        "added_sugars_g": 0,
+        "sodium_mg": 25
+      },
+      "nutritionSource": "estimate",
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "cauli-rice",
+      "name": {
+        "en": "Cauliflower Rice",
+        "es": "Arroz de coliflor"
+      },
+      "color": "#E4E1D2",
+      "servingGrams": 150,
+      "nutritionPerRegular": {
+        "energy_kcal": 40,
+        "protein_g": 3,
+        "carbohydrate_g": 7,
+        "fat_g": 0.5,
+        "fiber_g": 3,
+        "sugars_g": 2,
+        "added_sugars_g": 0,
+        "sodium_mg": 200
+      },
+      "nutritionSource": "estimate",
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": [
+        "low_carb"
+      ]
+    },
+    {
+      "id": "grilled-chicken",
+      "name": {
+        "en": "Grilled Chicken",
+        "es": "Pollo a la parrilla"
+      },
+      "color": "#D49A5C",
+      "servingGrams": 113,
+      "nutritionPerRegular": {
+        "energy_kcal": 190,
+        "protein_g": 35,
+        "carbohydrate_g": 0,
+        "fat_g": 4.5,
+        "fiber_g": 0,
+        "sugars_g": 0,
+        "added_sugars_g": 0,
+        "sodium_mg": 380
+      },
+      "nutritionSource": "estimate",
+      "allergens": [],
+      "dietTags": [
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": [
+        "high_protein"
+      ]
+    },
+    {
+      "id": "grilled-steak",
+      "name": {
+        "en": "Grilled Steak",
+        "es": "Res a la parrilla"
+      },
+      "color": "#87463A",
+      "servingGrams": 113,
+      "nutritionPerRegular": {
+        "energy_kcal": 230,
+        "protein_g": 32,
+        "carbohydrate_g": 0,
+        "fat_g": 11,
+        "fiber_g": 0,
+        "sugars_g": 0,
+        "added_sugars_g": 0,
+        "sodium_mg": 400
+      },
+      "nutritionSource": "estimate",
+      "allergens": [],
+      "dietTags": [
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": [
+        "high_protein"
+      ]
+    },
+    {
+      "id": "roasted-salmon",
+      "name": {
+        "en": "Roasted Salmon",
+        "es": "Salmón asado"
+      },
+      "color": "#EE8763",
+      "servingGrams": 113,
+      "nutritionPerRegular": {
+        "energy_kcal": 235,
+        "protein_g": 25,
+        "carbohydrate_g": 0,
+        "fat_g": 15,
+        "fiber_g": 0,
+        "sugars_g": 0,
+        "added_sugars_g": 0,
+        "sodium_mg": 300
+      },
+      "nutritionSource": "estimate",
+      "allergens": [
+        "fish"
+      ],
+      "dietTags": [
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "garlic-shrimp",
+      "name": {
+        "en": "Garlic Shrimp",
+        "es": "Camarones al ajo"
+      },
+      "color": "#F3A58C",
+      "servingGrams": 113,
+      "nutritionPerRegular": {
+        "energy_kcal": 135,
+        "protein_g": 26,
+        "carbohydrate_g": 1,
+        "fat_g": 3,
+        "fiber_g": 0,
+        "sugars_g": 0,
+        "added_sugars_g": 0,
+        "sodium_mg": 450
+      },
+      "nutritionSource": "estimate",
+      "allergens": [
+        "shellfish"
+      ],
+      "dietTags": [
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "baked-tofu",
+      "name": {
+        "en": "Baked Tofu",
+        "es": "Tofu horneado"
+      },
+      "color": "#E6D39C",
+      "servingGrams": 113,
+      "nutritionPerRegular": {
+        "energy_kcal": 170,
+        "protein_g": 18,
+        "carbohydrate_g": 4,
+        "fat_g": 10,
+        "fiber_g": 1,
+        "sugars_g": 1,
+        "added_sugars_g": 0,
+        "sodium_mg": 350
+      },
+      "nutritionSource": "estimate",
+      "allergens": [
+        "soy"
+      ],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "no-protein",
+      "name": {
+        "en": "No Protein (Veggie Bowl)",
+        "es": "Sin proteína (bowl vegetal)"
+      },
+      "color": "#C9D3C2",
+      "servingGrams": 0,
+      "nutritionPerRegular": {
+        "energy_kcal": 0,
+        "protein_g": 0,
+        "carbohydrate_g": 0,
+        "fat_g": 0,
+        "fiber_g": 0,
+        "sugars_g": 0,
+        "added_sugars_g": 0,
+        "sodium_mg": 0
+      },
+      "nutritionSource": "estimate",
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "roasted-broccoli",
+      "name": {
+        "en": "Roasted Broccoli",
+        "es": "Brócoli asado"
+      },
+      "color": "#3D8A37",
+      "servingGrams": 60,
+      "nutritionPerRegular": {
+        "energy_kcal": 40,
+        "protein_g": 2,
+        "carbohydrate_g": 4,
+        "fat_g": 2,
+        "fiber_g": 1.5,
+        "sugars_g": 1,
+        "added_sugars_g": 0,
+        "sodium_mg": 120
+      },
+      "nutritionSource": "estimate",
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "charred-corn",
+      "name": {
+        "en": "Charred Corn",
+        "es": "Maíz asado"
+      },
+      "color": "#F0BF2C",
+      "servingGrams": 50,
+      "nutritionPerRegular": {
+        "energy_kcal": 50,
+        "protein_g": 1.5,
+        "carbohydrate_g": 10,
+        "fat_g": 0.5,
+        "fiber_g": 1,
+        "sugars_g": 3,
+        "added_sugars_g": 0,
+        "sodium_mg": 120
+      },
+      "nutritionSource": "estimate",
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "black-beans",
+      "name": {
+        "en": "Black Beans",
+        "es": "Frijoles negros"
+      },
+      "color": "#2D2933",
+      "servingGrams": 60,
+      "nutritionPerRegular": {
+        "energy_kcal": 80,
+        "protein_g": 5,
+        "carbohydrate_g": 14,
+        "fat_g": 0.5,
+        "fiber_g": 5,
+        "sugars_g": 0.5,
+        "added_sugars_g": 0,
+        "sodium_mg": 200
+      },
+      "nutritionSource": "estimate",
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "cucumber",
+      "name": {
+        "en": "Cucumber",
+        "es": "Pepino"
+      },
+      "color": "#A3D277",
+      "servingGrams": 50,
+      "nutritionPerRegular": {
+        "energy_kcal": 10,
+        "protein_g": 0.5,
+        "carbohydrate_g": 2,
+        "fat_g": 0,
+        "fiber_g": 0.5,
+        "sugars_g": 1,
+        "added_sugars_g": 0,
+        "sodium_mg": 0
+      },
+      "nutritionSource": "estimate",
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "edamame",
+      "name": {
+        "en": "Edamame",
+        "es": "Edamame"
+      },
+      "color": "#76B648",
+      "servingGrams": 50,
+      "nutritionPerRegular": {
+        "energy_kcal": 60,
+        "protein_g": 5.5,
+        "carbohydrate_g": 4.5,
+        "fat_g": 2.5,
+        "fiber_g": 2.5,
+        "sugars_g": 1,
+        "added_sugars_g": 0,
+        "sodium_mg": 150
+      },
+      "nutritionSource": "estimate",
+      "allergens": [
+        "soy"
+      ],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "pickled-onion",
+      "name": {
+        "en": "Pickled Red Onion",
+        "es": "Cebolla morada encurtida"
+      },
+      "color": "#C0437B",
+      "servingGrams": 20,
+      "nutritionPerRegular": {
+        "energy_kcal": 10,
+        "protein_g": 0,
+        "carbohydrate_g": 2.5,
+        "fat_g": 0,
+        "fiber_g": 0.3,
+        "sugars_g": 2.5,
+        "added_sugars_g": 2,
+        "sodium_mg": 120
+      },
+      "nutritionSource": "estimate",
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "cherry-tomatoes",
+      "name": {
+        "en": "Cherry Tomatoes",
+        "es": "Tomates cherry"
+      },
+      "color": "#E2463A",
+      "servingGrams": 50,
+      "nutritionPerRegular": {
+        "energy_kcal": 10,
+        "protein_g": 0.5,
+        "carbohydrate_g": 2,
+        "fat_g": 0,
+        "fiber_g": 0.6,
+        "sugars_g": 1.5,
+        "added_sugars_g": 0,
+        "sodium_mg": 5
+      },
+      "nutritionSource": "estimate",
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "avocado",
+      "name": {
+        "en": "Avocado",
+        "es": "Aguacate"
+      },
+      "color": "#97C057",
+      "servingGrams": 50,
+      "nutritionPerRegular": {
+        "energy_kcal": 80,
+        "protein_g": 1,
+        "carbohydrate_g": 4.5,
+        "fat_g": 7.5,
+        "fiber_g": 3.5,
+        "sugars_g": 0,
+        "added_sugars_g": 0,
+        "sodium_mg": 5
+      },
+      "nutritionSource": "estimate",
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "soft-egg",
+      "name": {
+        "en": "Soft-Boiled Egg",
+        "es": "Huevo tibio"
+      },
+      "color": "#F4C13F",
+      "servingGrams": 50,
+      "nutritionPerRegular": {
+        "energy_kcal": 75,
+        "protein_g": 6.5,
+        "carbohydrate_g": 0.5,
+        "fat_g": 5,
+        "fiber_g": 0,
+        "sugars_g": 0,
+        "added_sugars_g": 0,
+        "sodium_mg": 70
+      },
+      "nutritionSource": "estimate",
+      "allergens": [
+        "egg"
+      ],
+      "dietTags": [
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "feta",
+      "name": {
+        "en": "Feta",
+        "es": "Queso feta"
+      },
+      "color": "#F3F0E4",
+      "servingGrams": 28,
+      "nutritionPerRegular": {
+        "energy_kcal": 75,
+        "protein_g": 4,
+        "carbohydrate_g": 1,
+        "fat_g": 6,
+        "fiber_g": 0,
+        "sugars_g": 1,
+        "added_sugars_g": 0,
+        "sodium_mg": 320
+      },
+      "nutritionSource": "estimate",
+      "allergens": [
+        "milk"
+      ],
+      "dietTags": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "sesame-seeds",
+      "name": {
+        "en": "Toasted Sesame Seeds",
+        "es": "Ajonjolí tostado"
+      },
+      "color": "#E5D3A2",
+      "servingGrams": 9,
+      "nutritionPerRegular": {
+        "energy_kcal": 50,
+        "protein_g": 1.5,
+        "carbohydrate_g": 2,
+        "fat_g": 4.5,
+        "fiber_g": 1,
+        "sugars_g": 0,
+        "added_sugars_g": 0,
+        "sodium_mg": 0
+      },
+      "nutritionSource": "estimate",
+      "allergens": [
+        "sesame"
+      ],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "crispy-shallots",
+      "name": {
+        "en": "Crispy Shallots",
+        "es": "Chalotas crujientes"
+      },
+      "color": "#C5873A",
+      "servingGrams": 15,
+      "nutritionPerRegular": {
+        "energy_kcal": 80,
+        "protein_g": 1,
+        "carbohydrate_g": 6,
+        "fat_g": 6,
+        "fiber_g": 0.5,
+        "sugars_g": 2,
+        "added_sugars_g": 0,
+        "sodium_mg": 150
+      },
+      "nutritionSource": "estimate",
+      "allergens": [
+        "wheat"
+      ],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "lemon-tahini",
+      "name": {
+        "en": "Lemon Tahini",
+        "es": "Tahini de limón"
+      },
+      "color": "#D8BE8F",
+      "servingGrams": 30,
+      "nutritionPerRegular": {
+        "energy_kcal": 90,
+        "protein_g": 2.5,
+        "carbohydrate_g": 3.5,
+        "fat_g": 8,
+        "fiber_g": 1,
+        "sugars_g": 1,
+        "added_sugars_g": 0,
+        "sodium_mg": 150
+      },
+      "nutritionSource": "estimate",
+      "allergens": [
+        "sesame"
+      ],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "spicy-mayo",
+      "name": {
+        "en": "Spicy Mayo",
+        "es": "Mayonesa picante"
+      },
+      "color": "#EE8448",
+      "servingGrams": 30,
+      "nutritionPerRegular": {
+        "energy_kcal": 160,
+        "protein_g": 0,
+        "carbohydrate_g": 1,
+        "fat_g": 17,
+        "fiber_g": 0,
+        "sugars_g": 1,
+        "added_sugars_g": 0,
+        "sodium_mg": 250
+      },
+      "nutritionSource": "estimate",
+      "allergens": [
+        "egg"
+      ],
+      "dietTags": [
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "teriyaki",
+      "name": {
+        "en": "Teriyaki",
+        "es": "Teriyaki"
+      },
+      "color": "#5A341F",
+      "servingGrams": 30,
+      "nutritionPerRegular": {
+        "energy_kcal": 50,
+        "protein_g": 1,
+        "carbohydrate_g": 11,
+        "fat_g": 0,
+        "fiber_g": 0,
+        "sugars_g": 9,
+        "added_sugars_g": 8,
+        "sodium_mg": 700
+      },
+      "nutritionSource": "estimate",
+      "allergens": [
+        "soy",
+        "wheat"
+      ],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "salsa-verde",
+      "name": {
+        "en": "Salsa Verde",
+        "es": "Salsa verde"
+      },
+      "color": "#7BAA45",
+      "servingGrams": 30,
+      "nutritionPerRegular": {
+        "energy_kcal": 10,
+        "protein_g": 0,
+        "carbohydrate_g": 2,
+        "fat_g": 0,
+        "fiber_g": 0.5,
+        "sugars_g": 1,
+        "added_sugars_g": 0,
+        "sodium_mg": 250
+      },
+      "nutritionSource": "estimate",
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "badges": []
+    },
+    {
+      "id": "yogurt-herb",
+      "name": {
+        "en": "Greek Yogurt Herb",
+        "es": "Yogur griego con hierbas"
+      },
+      "color": "#EFEDE3",
+      "servingGrams": 30,
+      "nutritionPerRegular": {
+        "energy_kcal": 35,
+        "protein_g": 2.5,
+        "carbohydrate_g": 1.5,
+        "fat_g": 2,
+        "fiber_g": 0,
+        "sugars_g": 1.5,
+        "added_sugars_g": 0,
+        "sodium_mg": 120
+      },
+      "nutritionSource": "estimate",
+      "allergens": [
+        "milk"
+      ],
+      "dietTags": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "badges": []
+    }
+  ],
+  "products": [
+    {
+      "id": "custom-bowl",
+      "kind": "configurable",
+      "name": {
+        "en": "Build your own bowl",
+        "es": "Arma tu bowl"
+      },
+      "groups": [
+        {
+          "id": "base",
+          "name": {
+            "en": "Base",
+            "es": "Base"
+          },
+          "min": 1,
+          "max": 2,
+          "includedCount": 2,
+          "extraPriceCents": 0,
+          "halfAndHalf": true,
+          "items": [
+            {
+              "ingredientId": "white-rice",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            },
+            {
+              "ingredientId": "brown-rice",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            },
+            {
+              "ingredientId": "quinoa",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            },
+            {
+              "ingredientId": "greens",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            },
+            {
+              "ingredientId": "cauli-rice",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            }
+          ]
+        },
+        {
+          "id": "protein",
+          "name": {
+            "en": "Protein",
+            "es": "Proteína"
+          },
+          "min": 1,
+          "max": 1,
+          "includedCount": 1,
+          "extraPriceCents": 0,
+          "setsBasePrice": true,
+          "items": [
+            {
+              "ingredientId": "grilled-chicken",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "double"
+              ],
+              "priceCents": 0,
+              "premium": false,
+              "basePriceCents": 1195,
+              "portionPriceDeltasCents": {
+                "double": 350
+              }
+            },
+            {
+              "ingredientId": "grilled-steak",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "double"
+              ],
+              "priceCents": 0,
+              "premium": false,
+              "basePriceCents": 1395,
+              "portionPriceDeltasCents": {
+                "double": 450
+              }
+            },
+            {
+              "ingredientId": "roasted-salmon",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "double"
+              ],
+              "priceCents": 0,
+              "premium": false,
+              "basePriceCents": 1445,
+              "portionPriceDeltasCents": {
+                "double": 495
+              }
+            },
+            {
+              "ingredientId": "garlic-shrimp",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "double"
+              ],
+              "priceCents": 0,
+              "premium": false,
+              "basePriceCents": 1345,
+              "portionPriceDeltasCents": {
+                "double": 425
+              }
+            },
+            {
+              "ingredientId": "baked-tofu",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "double"
+              ],
+              "priceCents": 0,
+              "premium": false,
+              "basePriceCents": 1095,
+              "portionPriceDeltasCents": {
+                "double": 250
+              }
+            },
+            {
+              "ingredientId": "no-protein",
+              "allowedPortions": [
+                "regular"
+              ],
+              "priceCents": 0,
+              "premium": false,
+              "basePriceCents": 995,
+              "portionPriceDeltasCents": {}
+            }
+          ]
+        },
+        {
+          "id": "veggies",
+          "name": {
+            "en": "Veggies",
+            "es": "Verduras"
+          },
+          "min": 0,
+          "max": 4,
+          "includedCount": 4,
+          "extraPriceCents": 0,
+          "items": [
+            {
+              "ingredientId": "roasted-broccoli",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            },
+            {
+              "ingredientId": "charred-corn",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            },
+            {
+              "ingredientId": "black-beans",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            },
+            {
+              "ingredientId": "cucumber",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            },
+            {
+              "ingredientId": "edamame",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            },
+            {
+              "ingredientId": "pickled-onion",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            },
+            {
+              "ingredientId": "cherry-tomatoes",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            }
+          ]
+        },
+        {
+          "id": "toppings",
+          "name": {
+            "en": "Toppings",
+            "es": "Toppings"
+          },
+          "min": 0,
+          "max": 5,
+          "includedCount": 2,
+          "extraPriceCents": 75,
+          "items": [
+            {
+              "ingredientId": "avocado",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 225,
+              "premium": true
+            },
+            {
+              "ingredientId": "soft-egg",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 150,
+              "premium": true
+            },
+            {
+              "ingredientId": "feta",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            },
+            {
+              "ingredientId": "sesame-seeds",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            },
+            {
+              "ingredientId": "crispy-shallots",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            }
+          ]
+        },
+        {
+          "id": "sauces",
+          "name": {
+            "en": "Sauce",
+            "es": "Salsa"
+          },
+          "min": 0,
+          "max": 2,
+          "includedCount": 2,
+          "extraPriceCents": 0,
+          "allowOnSide": true,
+          "items": [
+            {
+              "ingredientId": "lemon-tahini",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            },
+            {
+              "ingredientId": "spicy-mayo",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            },
+            {
+              "ingredientId": "teriyaki",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            },
+            {
+              "ingredientId": "salsa-verde",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            },
+            {
+              "ingredientId": "yogurt-herb",
+              "allowedPortions": [
+                "light",
+                "regular",
+                "extra"
+              ],
+              "priceCents": 0,
+              "premium": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "protein-cup",
+      "kind": "configurable",
+      "name": {
+        "en": "Protein cup",
+        "es": "Vaso de proteína"
+      },
+      "groups": [
+        {
+          "id": "protein",
+          "name": {
+            "en": "Protein",
+            "es": "Proteína"
+          },
+          "min": 1,
+          "max": 1,
+          "includedCount": 1,
+          "extraPriceCents": 0,
+          "setsBasePrice": true,
+          "items": [
+            {
+              "ingredientId": "grilled-chicken",
+              "allowedPortions": [
+                "regular"
+              ],
+              "priceCents": 0,
+              "premium": false,
+              "basePriceCents": 495
+            },
+            {
+              "ingredientId": "grilled-steak",
+              "allowedPortions": [
+                "regular"
+              ],
+              "priceCents": 0,
+              "premium": false,
+              "basePriceCents": 595
+            },
+            {
+              "ingredientId": "roasted-salmon",
+              "allowedPortions": [
+                "regular"
+              ],
+              "priceCents": 0,
+              "premium": false,
+              "basePriceCents": 645
+            },
+            {
+              "ingredientId": "garlic-shrimp",
+              "allowedPortions": [
+                "regular"
+              ],
+              "priceCents": 0,
+              "premium": false,
+              "basePriceCents": 595
+            },
+            {
+              "ingredientId": "baked-tofu",
+              "allowedPortions": [
+                "regular"
+              ],
+              "priceCents": 0,
+              "premium": false,
+              "basePriceCents": 425
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "still-water",
+      "kind": "simple",
+      "name": {
+        "en": "Still Water",
+        "es": "Agua natural"
+      },
+      "priceCents": 200,
+      "nutrition": {
+        "energy_kcal": 0,
+        "protein_g": 0,
+        "carbohydrate_g": 0,
+        "fat_g": 0,
+        "fiber_g": 0,
+        "sugars_g": 0,
+        "added_sugars_g": 0,
+        "sodium_mg": 0
+      },
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ]
+    },
+    {
+      "id": "sparkling-water",
+      "kind": "simple",
+      "name": {
+        "en": "Sparkling Water",
+        "es": "Agua mineral"
+      },
+      "priceCents": 250,
+      "nutrition": {
+        "energy_kcal": 0,
+        "protein_g": 0,
+        "carbohydrate_g": 0,
+        "fat_g": 0,
+        "fiber_g": 0,
+        "sugars_g": 0,
+        "added_sugars_g": 0,
+        "sodium_mg": 0
+      },
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ]
+    },
+    {
+      "id": "iced-green-tea",
+      "kind": "simple",
+      "name": {
+        "en": "Iced Green Tea (unsweetened)",
+        "es": "Té verde helado (sin azúcar)"
+      },
+      "priceCents": 325,
+      "nutrition": {
+        "energy_kcal": 0,
+        "protein_g": 0,
+        "carbohydrate_g": 0,
+        "fat_g": 0,
+        "fiber_g": 0,
+        "sugars_g": 0,
+        "added_sugars_g": 0,
+        "sodium_mg": 0
+      },
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ]
+    },
+    {
+      "id": "lemonade",
+      "kind": "simple",
+      "name": {
+        "en": "Lemonade",
+        "es": "Limonada"
+      },
+      "priceCents": 350,
+      "nutrition": {
+        "energy_kcal": 120,
+        "protein_g": 0,
+        "carbohydrate_g": 31,
+        "fat_g": 0,
+        "fiber_g": 0,
+        "sugars_g": 30,
+        "added_sugars_g": 30,
+        "sodium_mg": 10
+      },
+      "allergens": [],
+      "dietTags": [
+        "vegan",
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ]
+    }
+  ],
+  "signatures": [
+    {
+      "id": "protein-power",
+      "productId": "custom-bowl",
+      "name": {
+        "en": "Protein Power",
+        "es": "Power proteína"
+      },
+      "badges": [
+        "high_protein"
+      ],
+      "lines": [
+        {
+          "ingredientId": "quinoa",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "grilled-chicken",
+          "portion": "double"
+        },
+        {
+          "ingredientId": "roasted-broccoli",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "edamame",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "soft-egg",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "yogurt-herb",
+          "portion": "regular"
+        }
+      ]
+    },
+    {
+      "id": "green-machine",
+      "productId": "custom-bowl",
+      "name": {
+        "en": "Green Machine",
+        "es": "Máquina verde"
+      },
+      "badges": [
+        "vegan"
+      ],
+      "lines": [
+        {
+          "ingredientId": "greens",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "baked-tofu",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "cucumber",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "edamame",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "avocado",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "lemon-tahini",
+          "portion": "regular"
+        }
+      ]
+    },
+    {
+      "id": "steakhouse",
+      "productId": "custom-bowl",
+      "name": {
+        "en": "Steakhouse",
+        "es": "Steakhouse"
+      },
+      "badges": [
+        "popular"
+      ],
+      "lines": [
+        {
+          "ingredientId": "brown-rice",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "grilled-steak",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "charred-corn",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "pickled-onion",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "feta",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "salsa-verde",
+          "portion": "regular"
+        }
+      ]
+    },
+    {
+      "id": "teriyaki-salmon",
+      "productId": "custom-bowl",
+      "name": {
+        "en": "Teriyaki Salmon",
+        "es": "Salmón teriyaki"
+      },
+      "badges": [],
+      "lines": [
+        {
+          "ingredientId": "white-rice",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "roasted-salmon",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "edamame",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "cucumber",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "sesame-seeds",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "teriyaki",
+          "portion": "regular"
+        }
+      ]
+    },
+    {
+      "id": "lean-and-light",
+      "productId": "custom-bowl",
+      "name": {
+        "en": "Lean & Light",
+        "es": "Ligero"
+      },
+      "badges": [],
+      "lines": [
+        {
+          "ingredientId": "cauli-rice",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "garlic-shrimp",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "cucumber",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "charred-corn",
+          "portion": "regular"
+        },
+        {
+          "ingredientId": "salsa-verde",
+          "portion": "regular"
+        }
+      ]
+    }
+  ]
+}

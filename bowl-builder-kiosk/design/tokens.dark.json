@@ -1,0 +1,94 @@
+{
+  "color": {
+    "bg": {
+      "$type": "color",
+      "$value": "{color.neutral.950}",
+      "$description": "Page background"
+    },
+    "surface": {
+      "$type": "color",
+      "$value": "{color.neutral.900}",
+      "$description": "Cards, panels, sheets"
+    },
+    "surface-2": {
+      "$type": "color",
+      "$value": "{color.neutral.800}",
+      "$description": "Chips, tracks, image wells, segmented controls"
+    },
+    "ink": {
+      "$type": "color",
+      "$value": "{color.neutral.50}",
+      "$description": "Primary text"
+    },
+    "muted": {
+      "$type": "color",
+      "$value": "{color.neutral.300}",
+      "$description": "Secondary text"
+    },
+    "line": {
+      "$type": "color",
+      "$value": "{color.neutral.700}",
+      "$description": "Decorative hairlines and dividers (not the only boundary of a control)"
+    },
+    "line-control": {
+      "$type": "color",
+      "$value": "{color.neutral.400}",
+      "$description": "Borders of chips, inputs and outlined buttons (WCAG 1.4.11, 3:1)"
+    },
+    "primary": {
+      "$type": "color",
+      "$value": "{color.basil.400}",
+      "$description": "Primary buttons, selected borders, progress"
+    },
+    "on-primary": {
+      "$type": "color",
+      "$value": "{color.basil.950}",
+      "$description": "Text and icons on primary"
+    },
+    "primary-soft": {
+      "$type": "color",
+      "$value": "{color.basil.900}",
+      "$description": "Selected backgrounds, success wash"
+    },
+    "accent": {
+      "$type": "color",
+      "$value": "{color.chili.300}",
+      "$description": "Price and badge text"
+    },
+    "accent-soft": {
+      "$type": "color",
+      "$value": "{color.chili.900}",
+      "$description": "Price and badge backgrounds"
+    },
+    "protein": {
+      "$type": "color",
+      "$value": "{color.protein.300}",
+      "$description": "Protein text, bars, ring"
+    },
+    "carbs": {
+      "$type": "color",
+      "$value": "{color.carbs.300}",
+      "$description": "Carbs text, bars, ring"
+    },
+    "fat": {
+      "$type": "color",
+      "$value": "{color.fat.300}",
+      "$description": "Fat text, bars, ring"
+    },
+    "fiber": {
+      "$type": "color",
+      "$value": "{color.fiber.300}",
+      "$description": "Fiber text, bars, ring"
+    },
+    "danger": {
+      "$type": "color",
+      "$value": "{color.red.300}",
+      "$description": "System errors and destructive actions only"
+    },
+    "focus": {
+      "$type": "color",
+      "$value": "{color.protein.300}",
+      "$description": "Focus ring"
+    }
+  }
+}

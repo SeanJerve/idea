@@ -1,86 +1,112 @@
 # Running the Prompt in Phases
 
-`PROMPT.md` describes the whole system. That's a lot for one message, and AI coding tools do better work when they build one milestone at a time and check it before moving on. This page gives you the messages to send, in order.
+`PROMPT.md` describes the whole system. AI coding tools do their best work one milestone at a time, checking each before moving on. This page gives you the 8 messages to send, in order, and what to check after each.
 
 ## Before you start
 
-1. Create an empty project folder (or a new project in your tool).
-2. Save the text between **START OF PROMPT** and **END OF PROMPT** as `SPEC.md` in the project root. Keep your "Make it yours" values in it.
-3. Optional: copy `prototype/index.html` into the project as `reference/prototype.html` so the builder can match the look.
-4. For milestone 3 you need a free Supabase project. Have its URL and keys ready.
+1. Create an empty project folder or repository.
+2. Copy these into it:
 
-Send each message below, wait for it to finish, try the result yourself, then send the next one.
+| From this folder | To the project as |
+|---|---|
+| `PROMPT.md` (the text between START and END) | `SPEC.md` |
+| `data/` | `data/` |
+| `design/` | `design/` |
+| `database/` | `database/` |
+| `prototype/index.html` | `reference/prototype.html` |
+
+3. For milestone 4 you need a Supabase project (free tier is fine): its URL, **publishable key** and **secret key**. The secret key goes only into Edge Function secrets, never into app code.
+
+Send each message, wait for it to finish, try the result yourself, then send the next.
 
 ---
 
-## Message 1: core engine
+## 1. Foundations
 
 ```
-Read SPEC.md completely before writing any code. We'll build it one milestone at a time (section 15).
-
-Do milestone 1 only: project setup, Zod schemas in src/schema, the seed menu in src/data, every function in src/core, and the unit and property tests from section 16 (Bowl A, Bowl B, Bowl C, rounding, validation, order totals, warning icons, property tests).
-
-Don't build any UI yet. When all tests pass, show me the test output and list any decisions you made in ASSUMPTIONS.md.
+Read SPEC.md completely, then look at data/, design/, database/ and reference/.
+Do milestone 1 only (SPEC.md §22): the monorepo and tooling from §9.2, CI gates from §18, packages/schema (Zod, matching data/seed-menu.schema.json), and packages/core with every function the spec needs, plus the §23 core unit and property tests. Wire design/tokens.css into Tailwind v4 with @theme.
+No UI yet. Finish by showing the test output and listing your ADRs.
 ```
+**Check:** tests pass. Bowl A = 530 cal / 51 g / $11.95, the promo and inclusive-tax tests pass.
 
-**Check:** the tests pass and Bowl A shows 530 cal, 51 g protein, $11.95.
-
-## Message 2: kiosk screens
+## 2. Design system
 
 ```
-Do milestone 2: the full kiosk (sections 4, 5 and 12.0–12.3) running on the local seed data, no backend yet. Use the design tokens in 12.0. If reference/prototype.html exists, match its look and layout.
-
-Both layouts must work: 1280x800 landscape and 1080x1920 portrait. Include goals, suggestions, diet filters, bowl codes (stored locally for now), the review screen with the nutrition table, single-screen checkout, confirmation, and the idle reset.
-
-When done, tell me how to run it and give me a 10-step manual test script I can follow on a tablet.
+Do milestone 2: packages/ui with every component in SPEC.md §7.8, using only the semantic tokens. Add Storybook stories for every state, in both themes and in RTL, with the accessibility addon. Match reference/prototype.html where it applies.
+Finish by listing any component whose stories have axe violations (there should be none).
 ```
+**Check:** open Storybook and look at IngredientCard, PortionSelector and BowlCanvas in light and dark.
 
-**Check:** open it on a tablet or in a browser at tablet size. Order "Protein Power" in 6 taps or fewer. Build Bowl A by hand and compare the numbers.
-
-## Message 3: backend, kitchen and pickup
+## 3. Kiosk on local data
 
 ```
-Do milestone 3 (sections 3.3, 9 and 11): Supabase schema and RLS, seed SQL, device pairing, the place-order Edge Function that recomputes price and nutrition with src/core and honors idempotency keys, published menu versions, live sold-out updates, the kitchen display with Line and Grill stations, the pickup board, and the offline order queue.
-
-Here are my Supabase details: <paste project URL and publishable (anon) key; put the secret (service role) key only in the Edge Function's secrets, never in the frontend>.
-
-Add the server tests from section 16. When done, explain how to pair a kiosk and how to test offline mode.
+Do milestone 3: the full kiosk (SPEC.md §4–§6 and §8) running from data/seed-menu.json with no backend. Use the XState session machine from §9.3, bag persistence, bowl codes stored locally, accessibility mode, EN + ES, both orientations (1280x800 and 1080x1920).
+Add the e2e tests from §23 that don't need a backend. Give me a 10-step manual test script for a tablet.
 ```
+**Check:**
+- Order Protein Power in 6 taps or fewer.
+- Build Bowl A and compare its numbers.
+- Turn on read-aloud and do an order with only a keyboard.
 
-**Check:** place an order on the kiosk and watch it appear on `/kitchen` and `/pickup`. Turn Wi-Fi off, place an order, turn it back on, and confirm it shows up exactly once.
-
-## Message 4: admin
-
-```
-Do milestone 4: everything in section 10. Include the publish diff and rollback, sold-out toggles, portion spec sheets, device list with heartbeat status, settings (including warning icons and tipping off by default), and reports with the ordering funnel.
-
-When done, walk me through changing a price, publishing it, and seeing it on the kiosk.
-```
-
-**Check:** mark avocado sold out and see it grey out on the kiosk within 2 seconds. Change a price, publish, then roll back.
-
-## Message 5: accessibility and polish
+## 4. Backend
 
 ```
-Do milestone 5: the accessibility mode in 12.2 (reach mode, larger text, high contrast, read-aloud audio mode, full keypad and keyboard control), Spanish translations, PWA precaching, kiosk lockdown, anonymous analytics (section 13), the performance budget (3.4), KIOSK_SETUP.md, and the full Playwright + axe suites at both screen sizes.
-
-Finish by running every test and checking every item in section 16. Give me a table of each acceptance test with pass or fail.
+Do milestone 4: create the Supabase project from database/schema.sql and database/supabase.sql as migrations, seed it with database/seed.sql, and port database/tests to pgTAP. Build the Edge Functions in §10.3 with contract tests (orders recompute everything in packages/core and call place_order; idempotency; error codes). Add device pairing, menu caching with ETag, realtime topics and the offline outbox from §9.5.
+My Supabase project URL and publishable key: <paste>. Put the secret key only into Edge Function secrets.
+Explain how to pair a kiosk and how to test offline mode.
 ```
+**Check:**
+- Pair a tablet and place an order.
+- Turn Wi-Fi off, place another order, then turn Wi-Fi back on. It arrives exactly once.
 
-**Check:** complete an order using only a keyboard with read-aloud on. Every row in the final table says pass.
+## 5. Kitchen and pickup
+
+```
+Do milestone 5: the KDS (Line, Grill with the all-day bar, Expo), bump-bar keys, timers, recall, the load-based wait estimate, the pickup board, and the label PDF preview (SPEC.md §12).
+```
+**Check:**
+- An order appears on the KDS within 2 seconds.
+- The pickup board shows "Sam R.", never the full name or the allergy note.
+
+## 6. Admin
+
+```
+Do milestone 6: everything in SPEC.md §13: the menu editor with live preview, publish validation, diff, staged rollout and rollback, availability board, devices, orders, reports with the funnel and menu engineering matrix, settings with the contrast checker, and staff roles.
+Walk me through changing a price, publishing it to one location, then rolling it back.
+```
+**Check:**
+- Mark avocado sold out: it greys out on the kiosk within 2 seconds.
+- Try to publish an ingredient with a missing allergen: publishing is blocked.
+
+## 7. Hardening
+
+```
+Do milestone 7 (SPEC.md §7.10, §9.6–9.8, §14–§16): region presets, performance budgets measured on a low-cost tablet, chaos tests, Sentry and OpenTelemetry, alerts, runbooks, KIOSK_SETUP.md and the security checklist.
+Run every test and give me a table of each §23 acceptance test with pass or fail.
+```
+**Check:** every row says pass. INP is 100 ms or less on the tablet.
+
+## 8. Launch readiness
+
+```
+Do milestone 8: the k6 load test and 12-hour soak test from §18, a pilot checklist for one store, then the first extensions: card payments through the PaymentTerminal adapter (Stripe Terminal server-driven) and label printing through the print bridge.
+```
+**Check:** the load test shows `POST /v1/orders` p95 under 400 ms with zero errors.
 
 ---
 
 ## If something goes wrong
 
-- **Numbers don't match section 16:** "Bowl A shows X but SPEC.md section 16 says 530 cal / 51 g protein. Find the bug in src/core, fix it, and add a test that would have caught it."
-- **The builder starts drifting from the spec:** "Re-read SPEC.md sections N–M and list every place the current code differs. Then fix them."
-- **It looks generic:** "Apply the tokens, fonts and layout in SPEC.md section 12.0 exactly. Compare against reference/prototype.html."
+- **Numbers don't match:** "Bowl A shows X but SPEC.md §23 says 530 cal / 51 g protein. Find the bug in packages/core, fix it, and add a test that would have caught it."
+- **It drifts from the spec:** "Re-read SPEC.md sections N–M, list every difference from the current code, then fix them."
+- **It looks generic:** "Use only the semantic tokens from design/tokens.css and the components in §7.8. Compare against reference/prototype.html."
+- **The database tests fail after a change:** "Run database/tests/run-local.sh, show me the failing check, and fix the schema or the test with a one-line explanation."
 
 ## Which tool for which phase
 
 | Tool | Good for | Notes |
 |---|---|---|
-| Claude Code, Cursor | All 5 phases | Can run the tests and Supabase CLI itself |
-| Lovable, Bolt | Phases 1–4 | Built-in Supabase connection; check that tests actually run |
-| v0 | Phase 2 (screens) | Frontend only; bring the result into a full project for phase 3 |
+| Claude Code, Cursor | All 8 milestones | Runs tests, Supabase CLI and Postgres itself |
+| Lovable, Bolt | Milestones 1–6 in a single app | Built-in Supabase connection; tell it to keep `core` and `schema` as plain TypeScript folders; check tests really run |
+| v0 | Milestones 2–3 (components and screens) | Frontend only; move the result into a full project for milestone 4 |

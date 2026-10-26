@@ -1,0 +1,111 @@
+/* Generated from tokens.*.json (W3C Design Tokens 2025.10). Do not edit by hand. */
+
+:root {
+  --bg: oklch(97.5% 0.003 145); /* #F5F7F5 */
+  --surface: oklch(100.0% 0.000 0); /* #FFFFFF */
+  --surface-2: oklch(94.5% 0.004 145); /* #EBEDEB */
+  --ink: oklch(22.5% 0.005 145); /* #1A1C1A */
+  --muted: oklch(47.0% 0.013 145); /* #565D56 */
+  --line: oklch(89.0% 0.007 145); /* #D8DCD8 */
+  --line-control: oklch(64.0% 0.014 145); /* #878F87 */
+  --primary: oklch(47.0% 0.117 152); /* #106D38 */
+  --on-primary: oklch(100.0% 0.000 0); /* #FFFFFF */
+  --primary-soft: oklch(94.5% 0.035 152); /* #DCF4E2 */
+  --accent: oklch(47.0% 0.141 42); /* #983701 */
+  --accent-soft: oklch(94.5% 0.028 42); /* #FEE7DF */
+  --protein: oklch(55.0% 0.157 262); /* #3B6DCC */
+  --carbs: oklch(47.0% 0.097 78); /* #785302 */
+  --fat: oklch(55.0% 0.147 355); /* #B04676 */
+  --fiber: oklch(47.0% 0.126 138); /* #326A1A */
+  --danger: oklch(55.0% 0.176 27); /* #C33933 */
+  --focus: oklch(55.0% 0.157 262); /* #3B6DCC */
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+  --touch-min: 64px;
+  --touch-gap: 12px;
+  --duration-instant: 90ms;
+  --duration-fast: 160ms;
+  --duration-base: 220ms;
+  --duration-slow: 300ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --ease-exit: cubic-bezier(0.3, 0, 1, 1);
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --text-caption: 600 0.875rem/1.35 var(--font-body);
+  --text-body-sm: 500 1rem/1.45 var(--font-body);
+  --text-body: 500 1.125rem/1.45 var(--font-body);
+  --text-body-lg: 600 1.25rem/1.4 var(--font-body);
+  --text-label: 700 1rem/1.2 var(--font-body);
+  --text-title-sm: 800 1.375rem/1.2 var(--font-display);
+  --text-title: 800 1.75rem/1.15 var(--font-display);
+  --text-headline: 800 2.25rem/1.05 var(--font-display);
+  --text-display: 800 3.25rem/1 var(--font-display);
+  --text-numeral: 800 3.5rem/0.95 var(--font-display);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: oklch(22.5% 0.005 145); /* #1A1C1A */
+    --surface: oklch(30.0% 0.008 145); /* #2B2F2B */
+    --surface-2: oklch(38.5% 0.011 145); /* #404540 */
+    --ink: oklch(97.5% 0.003 145); /* #F5F7F5 */
+    --muted: oklch(81.5% 0.010 145); /* #BFC4BF */
+    --line: oklch(47.0% 0.013 145); /* #565D56 */
+    --line-control: oklch(73.0% 0.013 145); /* #A3AAA3 */
+    --primary: oklch(73.0% 0.119 152); /* #69BD82 */
+    --on-primary: oklch(22.5% 0.042 152); /* #0A2112 */
+    --primary-soft: oklch(30.0% 0.072 152); /* #07381B */
+    --accent: oklch(81.5% 0.109 42); /* #FFAB8A */
+    --accent-soft: oklch(30.0% 0.090 42); /* #511900 */
+    --protein: oklch(81.5% 0.092 262); /* #A2C3FF */
+    --carbs: oklch(81.5% 0.111 78); /* #EABA6C */
+    --fat: oklch(81.5% 0.111 355); /* #FCA4C6 */
+    --fiber: oklch(81.5% 0.103 138); /* #A2D391 */
+    --danger: oklch(81.5% 0.103 27); /* #FEA99E */
+    --focus: oklch(81.5% 0.092 262); /* #A2C3FF */
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: oklch(22.5% 0.005 145); /* #1A1C1A */
+  --surface: oklch(30.0% 0.008 145); /* #2B2F2B */
+  --surface-2: oklch(38.5% 0.011 145); /* #404540 */
+  --ink: oklch(97.5% 0.003 145); /* #F5F7F5 */
+  --muted: oklch(81.5% 0.010 145); /* #BFC4BF */
+  --line: oklch(47.0% 0.013 145); /* #565D56 */
+  --line-control: oklch(73.0% 0.013 145); /* #A3AAA3 */
+  --primary: oklch(73.0% 0.119 152); /* #69BD82 */
+  --on-primary: oklch(22.5% 0.042 152); /* #0A2112 */
+  --primary-soft: oklch(30.0% 0.072 152); /* #07381B */
+  --accent: oklch(81.5% 0.109 42); /* #FFAB8A */
+  --accent-soft: oklch(30.0% 0.090 42); /* #511900 */
+  --protein: oklch(81.5% 0.092 262); /* #A2C3FF */
+  --carbs: oklch(81.5% 0.111 78); /* #EABA6C */
+  --fat: oklch(81.5% 0.111 355); /* #FCA4C6 */
+  --fiber: oklch(81.5% 0.103 138); /* #A2D391 */
+  --danger: oklch(81.5% 0.103 27); /* #FEA99E */
+  --focus: oklch(81.5% 0.092 262); /* #A2C3FF */
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; }
+}

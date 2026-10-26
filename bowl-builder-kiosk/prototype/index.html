@@ -8,20 +8,21 @@
 /* Layout: kiosk app. Top bar with step track; ingredient grid on the left, a persistent "Your Bowl" panel on the right.
    Under 900px the panel becomes a bottom sheet that always shows calories, protein, price and Next. */
 :root {
-  --bg: #EEF2EA;          /* basil-tinted paper */
+  --bg: #F5F7F5;          /* basil-tinted paper */
   --surface: #FFFFFF;
-  --surface-2: #E1E8DB;
-  --ink: #142019;
-  --muted: #56665B;
-  --line: #CBD5C4;
-  --primary: #1D5A3C;     /* basil */
+  --surface-2: #EBEDEB;
+  --ink: #1A1C1A;
+  --muted: #565D56;
+  --line: #D8DCD8;
+  --line-control: #878F87;
+  --primary: #106D38;     /* basil */
   --primary-ink: #FFFFFF;
-  --accent: #E0662A;      /* chili */
-  --accent-soft: #FBE3D6;
-  --protein: #2F66C9;
-  --carbs: #C98A12;
-  --fat: #B9476F;
-  --fiber: #3A8B57;
+  --accent: #983701;      /* chili */
+  --accent-soft: #FEE7DF;
+  --protein: #3B6DCC;
+  --carbs: #785302;
+  --fat: #B04676;
+  --fiber: #326A1A;
   --bowl-rim: #F7F4EC;
   --bowl-in: #DCE3D5;
   --shadow: 0 1px 2px rgba(20,32,25,.08), 0 6px 18px rgba(20,32,25,.08);
@@ -31,18 +32,18 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0E1611; --surface: #16211A; --surface-2: #1E2B23; --ink: #E6EEE6; --muted: #9DB0A3; --line: #2C3D32;
-    --primary: #63C08C; --primary-ink: #08160E; --accent: #F28A55; --accent-soft: #3A2419;
-    --protein: #7FA6F0; --carbs: #E7B54A; --fat: #E07FA1; --fiber: #6CC48D;
+    --bg: #1A1C1A; --surface: #2B2F2B; --surface-2: #404540; --ink: #F5F7F5; --muted: #BFC4BF; --line: #565D56; --line-control: #A3AAA3;
+    --primary: #69BD82; --primary-ink: #0A2112; --accent: #FFAB8A; --accent-soft: #511900;
+    --protein: #A2C3FF; --carbs: #EABA6C; --fat: #FCA4C6; --fiber: #A2D391;
     --bowl-rim: #2A3630; --bowl-in: #1B2620;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.35);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0E1611; --surface: #16211A; --surface-2: #1E2B23; --ink: #E6EEE6; --muted: #9DB0A3; --line: #2C3D32;
-  --primary: #63C08C; --primary-ink: #08160E; --accent: #F28A55; --accent-soft: #3A2419;
-  --protein: #7FA6F0; --carbs: #E7B54A; --fat: #E07FA1; --fiber: #6CC48D;
+  --bg: #1A1C1A; --surface: #2B2F2B; --surface-2: #404540; --ink: #F5F7F5; --muted: #BFC4BF; --line: #565D56; --line-control: #A3AAA3;
+  --primary: #69BD82; --primary-ink: #0A2112; --accent: #FFAB8A; --accent-soft: #511900;
+  --protein: #A2C3FF; --carbs: #EABA6C; --fat: #FCA4C6; --fiber: #A2D391;
   --bowl-rim: #2A3630; --bowl-in: #1B2620;
   --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.35);
   color-scheme: dark;
@@ -51,7 +52,7 @@ html, body { height: 100%; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 1rem; line-height: 1.4;
   -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
 html.large { font-size: 125%; }
-.hc { --muted: var(--ink); --line: var(--ink); }
+.hc { --muted: var(--ink); --line: var(--ink); --line-control: var(--ink); }
 .hc .card, .hc .chip, .hc .panel, .hc .sig { border-width: 2px; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -75,7 +76,7 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; le
 .steps li.cur button { background: var(--surface-2); color: var(--ink); }
 .steps li.cur .dot { border-color: var(--primary); }
 .steps li button:disabled { cursor: default; }
-.a11y-btn { min-height: 48px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); font-weight: 700; display: flex; align-items: center; gap: 8px; white-space: nowrap; margin-left: auto; }
+.a11y-btn { min-height: 48px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-control); font-weight: 700; display: flex; align-items: center; gap: 8px; white-space: nowrap; margin-left: auto; }
 .a11y-btn svg { width: 22px; height: 22px; }
 .a11y-pop { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); top: 72px; z-index: 40; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); padding: 12px; display: grid; gap: 8px; width: min(320px, calc(100vw - 32px)); }
 .a11y-pop h3 { font-size: 1rem; padding: 4px 6px; }
@@ -98,7 +99,7 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; le
 .attract p { color: var(--muted); font-size: 1.15rem; margin: 0; max-width: 32ch; }
 .cta { min-height: 64px; padding: 0 28px; border-radius: 999px; background: var(--primary); color: var(--primary-ink); font-weight: 800; font-size: 1.15rem; display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
 .cta:disabled { background: var(--surface-2); color: var(--muted); cursor: not-allowed; }
-.cta.ghost { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+.cta.ghost { background: var(--surface); color: var(--ink); border: 1px solid var(--line-control); }
 .cta.wide { width: 100%; }
 
 /* Home */
@@ -113,7 +114,7 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; le
 .prefs h3 { font-size: 1rem; }
 .prefs .hint { color: var(--muted); font-size: .9rem; margin: -10px 0 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip { min-height: 48px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-weight: 700; font-size: .95rem; }
+.chip { min-height: 48px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line-control); background: var(--surface); font-weight: 700; font-size: .95rem; }
 .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .section-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .section-h h2 { font-size: 1.5rem; }
@@ -858,19 +859,20 @@ document.addEventListener('keydown', e => {
 document.addEventListener('focusin', e => { if (S.a11y.audio) { const el = e.target; const txt = el.getAttribute('aria-label') || el.textContent.trim().replace(/\s+/g, ' '); if (txt) { try { speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance(txt)); } catch (err) {} } } });
 document.addEventListener('contextmenu', e => e.preventDefault());
 
-/* ---------- Idle reset: 60 s, then a 15 s "Still there?" ---------- */
+/* ---------- Idle reset: 60 s (180 s in accessibility mode), then a 20 s "Still there?" ---------- */
 let idleEl = null;
 function closeIdle() { if (idleEl) { idleEl.remove(); idleEl = null; } lastTouch = Date.now(); }
 setInterval(() => {
   if (S.screen === 'attract' || S.screen === 'done') return;
   const idle = (Date.now() - lastTouch) / 1000;
-  if (idle >= 60 && !idleEl) {
+  const limit = Object.values(S.a11y).some(Boolean) ? 180 : 60;   // more time in accessibility mode
+  if (idle >= limit && !idleEl) {
     idleEl = document.createElement('div'); idleEl.className = 'overlay';
-    idleEl.innerHTML = `<div class="box" role="alertdialog" aria-label="Still there?"><h1>Still there?</h1><div class="count num" id="idlecount">15</div><p style="margin:0;color:var(--muted);font-weight:600">We'll start over for the next guest.</p><button class="cta" data-act="still">I'm still here</button></div>`;
+    idleEl.innerHTML = `<div class="box" role="alertdialog" aria-label="Still there?"><h1>Still there?</h1><div class="count num" id="idlecount">20</div><p style="margin:0;color:var(--muted);font-weight:600">We'll start over for the next guest.</p><button class="cta" data-act="still">I'm still here</button></div>`;
     document.body.appendChild(idleEl); idleEl.querySelector('button').focus(); say('Still there? Tap I am still here.');
   }
   if (idleEl) {
-    const left = Math.max(0, Math.ceil(75 - idle)); const c = document.getElementById('idlecount'); if (c) c.textContent = left;
+    const left = Math.max(0, Math.ceil(limit + 20 - idle)); const c = document.getElementById('idlecount'); if (c) c.textContent = left;
     if (left <= 0) { idleEl.remove(); idleEl = null; reset(); render(); }
   }
 }, 1000);
