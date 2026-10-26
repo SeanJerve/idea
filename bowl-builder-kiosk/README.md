@@ -6,15 +6,18 @@ There's no app code here yet. This folder holds the **prompt** that builds it.
 
 ## Files
 
-- [`PROMPT.md`](PROMPT.md): the full build prompt. Fill in the "Make it yours" table, then paste everything from **START OF PROMPT** to the end into an AI coding tool (Claude Code, Cursor, Lovable, Bolt, v0) in an empty folder.
+- [`PROMPT.md`](PROMPT.md): the full build prompt (v2). Fill in the "Make it yours" table, then paste everything from **START OF PROMPT** to the end into an AI coding tool (Claude Code, Cursor, Lovable, Bolt, v0) in an empty folder.
+- [`RESEARCH.md`](RESEARCH.md): what Sweetgreen, CAVA, Chipotle, Toast, Square and others already do, kiosk design and accessibility findings, labeling laws, trends, what changed in v2 and why, ideas for later, risks, and sources.
 
 ## What the prompt asks for
 
-- **Kiosk** (customer touchscreen): attract screen, dine in / take out, signature bowls, a step-by-step builder with Light / Regular / Extra / Double portions, half & half bases, a "Your Bowl" panel with a bowl that fills up and live macro totals, goals (High protein, Under 600, Low carb, Custom) with one-tap swap suggestions, diet and allergen filters, review, checkout, order number.
-- **Kitchen display**: realtime tickets in assembly-line order, allergy banners, timers, bump buttons.
-- **Admin**: menu and nutrition editor, sold-out toggle, step rules, signature bowls, settings, simple reports.
-- **Kiosk hardening**: idle reset, lockdown, hidden staff menu, works offline.
-- **A seed menu** of 28 ingredients and 4 drinks, with nutrition per portion, plus exact nutrition math, rounding rules and acceptance tests with expected numbers, so the built app can be checked.
+- **Kiosk** (customer touchscreen): signature bowls in 6 taps or fewer, a step-by-step builder with Light / Regular / Extra / Double portions and half & half bases, a "Your Bowl" panel with a bowl that fills up and live nutrition (simple or full view), goals (High protein, Lighter, Under 600, Low carb, Custom) with one-tap swaps, diet and allergen filters, protein cups, bowl codes to reorder, single-screen checkout, no tipping prompt.
+- **Accessibility mode**: reach mode, larger text, high contrast, audio mode that reads everything aloud, full keypad/keyboard control.
+- **Kitchen display**: realtime tickets in assembly-line order with grams, allergy banners, timers, grill and line station views.
+- **Pickup board**: Preparing and Ready columns.
+- **Admin**: menu editor with publish, diff and rollback, sold-out toggle, portion spec sheets, device pairing and status, settings, reports and an ordering funnel.
+- **Architecture**: the server recalculates every price and nutrition total, orders can't duplicate, the kiosk keeps working offline, menu versions switch only between customers.
+- **A seed menu** of 28 ingredients and 4 drinks with calories, protein, carbs, fat, fiber, sugar and sodium, plus exact math, rounding rules and acceptance tests with expected numbers.
 
 Suggested stack in the prompt: React + TypeScript + Vite + Tailwind, a PWA for the kiosk, and Supabase for the menu, orders and realtime kitchen updates. The prompt allows another stack if the builder explains why.
 
