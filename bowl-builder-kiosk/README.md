@@ -1,12 +1,14 @@
 # Build-Your-Bowl Kiosk (idea)
 
-An idea for a self-order touchscreen kiosk at a restaurant counter. Customers build their own bowl (base, protein, veggies, toppings, sauce) and see the price, calories, protein, carbs, fat and fiber update with every tap. Orders go to a kitchen screen, and staff manage the menu from an admin page.
+An idea for a self-order touchscreen kiosk at a restaurant counter. Customers build their own bowl (base, protein, veggies, toppings, sauce) and see the price, calories, protein, carbs, fat, fiber, sugar and sodium update with every tap. Orders go to a kitchen screen, and staff manage the menu from an admin page.
 
-There's no app code here yet. This folder holds the **prompt** that builds it.
+There's no production app here yet. This folder holds the **prompt** that builds it, the research behind it, and a clickable prototype.
 
 ## Files
 
 - [`PROMPT.md`](PROMPT.md): the full build prompt (v2). Fill in the "Make it yours" table, then paste everything from **START OF PROMPT** to the end into an AI coding tool (Claude Code, Cursor, Lovable, Bolt, v0) in an empty folder.
+- [`PHASES.md`](PHASES.md): the same build split into 5 messages, one per milestone, with what to check after each and which AI tools fit each phase.
+- [`prototype/index.html`](prototype/index.html): a clickable prototype of the kiosk (one HTML file, no install). Open it in a browser. It uses the prompt's seed menu and math, so its numbers match the acceptance tests.
 - [`RESEARCH.md`](RESEARCH.md): what Sweetgreen, CAVA, Chipotle, Toast, Square and others already do, kiosk design and accessibility findings, labeling laws, trends, what changed in v2 and why, ideas for later, risks, and sources.
 
 ## What the prompt asks for

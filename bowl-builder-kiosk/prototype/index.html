@@ -1,0 +1,879 @@
+<meta charset="utf-8">
+<title>Bowl Lab Kiosk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: kiosk app. Top bar with step track; ingredient grid on the left, a persistent "Your Bowl" panel on the right.
+   Under 900px the panel becomes a bottom sheet that always shows calories, protein, price and Next. */
+:root {
+  --bg: #EEF2EA;          /* basil-tinted paper */
+  --surface: #FFFFFF;
+  --surface-2: #E1E8DB;
+  --ink: #142019;
+  --muted: #56665B;
+  --line: #CBD5C4;
+  --primary: #1D5A3C;     /* basil */
+  --primary-ink: #FFFFFF;
+  --accent: #E0662A;      /* chili */
+  --accent-soft: #FBE3D6;
+  --protein: #2F66C9;
+  --carbs: #C98A12;
+  --fat: #B9476F;
+  --fiber: #3A8B57;
+  --bowl-rim: #F7F4EC;
+  --bowl-in: #DCE3D5;
+  --shadow: 0 1px 2px rgba(20,32,25,.08), 0 6px 18px rgba(20,32,25,.08);
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --r: 18px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1611; --surface: #16211A; --surface-2: #1E2B23; --ink: #E6EEE6; --muted: #9DB0A3; --line: #2C3D32;
+    --primary: #63C08C; --primary-ink: #08160E; --accent: #F28A55; --accent-soft: #3A2419;
+    --protein: #7FA6F0; --carbs: #E7B54A; --fat: #E07FA1; --fiber: #6CC48D;
+    --bowl-rim: #2A3630; --bowl-in: #1B2620;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1611; --surface: #16211A; --surface-2: #1E2B23; --ink: #E6EEE6; --muted: #9DB0A3; --line: #2C3D32;
+  --primary: #63C08C; --primary-ink: #08160E; --accent: #F28A55; --accent-soft: #3A2419;
+  --protein: #7FA6F0; --carbs: #E7B54A; --fat: #E07FA1; --fiber: #6CC48D;
+  --bowl-rim: #2A3630; --bowl-in: #1B2620;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.35);
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 1rem; line-height: 1.4;
+  -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+html.large { font-size: 125%; }
+.hc { --muted: var(--ink); --line: var(--ink); }
+.hc .card, .hc .chip, .hc .panel, .hc .sig { border-width: 2px; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+.num { font-variant-numeric: tabular-nums; }
+h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+
+#app { min-height: 100%; display: flex; flex-direction: column; }
+.topbar { display: flex; align-items: center; gap: 16px; padding-block: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--surface); border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 800; font-size: 1.35rem; white-space: nowrap; }
+.brand svg { width: 34px; height: 34px; }
+.steps { flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.steps ol { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.steps li button { min-height: 44px; padding: 0 14px; border-radius: 999px; font-weight: 700; font-size: .9rem; color: var(--muted); white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.steps li button .dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: .7rem; }
+.steps li.done button { color: var(--ink); }
+.steps li.done .dot { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+.steps li.cur button { background: var(--surface-2); color: var(--ink); }
+.steps li.cur .dot { border-color: var(--primary); }
+.steps li button:disabled { cursor: default; }
+.a11y-btn { min-height: 48px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); font-weight: 700; display: flex; align-items: center; gap: 8px; white-space: nowrap; margin-left: auto; }
+.a11y-btn svg { width: 22px; height: 22px; }
+.a11y-pop { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); top: 72px; z-index: 40; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); padding: 12px; display: grid; gap: 8px; width: min(320px, calc(100vw - 32px)); }
+.a11y-pop h3 { font-size: 1rem; padding: 4px 6px; }
+.toggle { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; padding: 0 12px; border-radius: 12px; background: var(--surface-2); font-weight: 600; text-align: left; }
+.toggle .sw { width: 46px; height: 28px; border-radius: 999px; background: var(--line); position: relative; flex: none; }
+.toggle .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); transition: left .15s; }
+.toggle[aria-pressed="true"] .sw { background: var(--primary); }
+.toggle[aria-pressed="true"] .sw::after { left: 21px; }
+
+#screen { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.reach #screen { padding-top: min(30vh, 280px); }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px; }
+
+/* Attract */
+.attract { flex: 1; display: grid; place-items: center; text-align: center; gap: 24px; cursor: pointer; padding-block: 32px; }
+.attract .bowl-hero { width: min(340px, 70vw); aspect-ratio: 1; max-width: 100%; }
+.attract .bowl-hero svg { width: 100%; height: 100%; animation: spin 60s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.attract h1 { font-size: clamp(2.2rem, 6vw, 4rem); font-weight: 800; line-height: 1; }
+.attract p { color: var(--muted); font-size: 1.15rem; margin: 0; max-width: 32ch; }
+.cta { min-height: 64px; padding: 0 28px; border-radius: 999px; background: var(--primary); color: var(--primary-ink); font-weight: 800; font-size: 1.15rem; display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+.cta:disabled { background: var(--surface-2); color: var(--muted); cursor: not-allowed; }
+.cta.ghost { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+.cta.wide { width: 100%; }
+
+/* Home */
+.home { display: grid; gap: 28px; max-width: 1200px; width: 100%; margin: 0 auto; }
+.home-top { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; }
+.byo { text-align: left; border-radius: 24px; background: var(--primary); color: var(--primary-ink); padding: 28px; display: grid; gap: 10px; align-content: end; min-height: 260px; position: relative; overflow: hidden; }
+.byo h2 { font-size: clamp(1.8rem, 3.5vw, 2.6rem); font-weight: 800; position: relative; }
+.byo p { margin: 0; opacity: .85; font-weight: 600; position: relative; }
+.byo .go { position: relative; justify-self: start; margin-top: 8px; min-height: 56px; padding: 0 22px; border-radius: 999px; background: var(--primary-ink); color: var(--primary); font-weight: 800; display: inline-flex; align-items: center; }
+.byo svg.deco { position: absolute; right: -40px; top: -40px; width: 260px; height: 260px; opacity: .95; }
+.prefs { display: grid; gap: 16px; align-content: start; background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 20px; }
+.prefs h3 { font-size: 1rem; }
+.prefs .hint { color: var(--muted); font-size: .9rem; margin: -10px 0 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { min-height: 48px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-weight: 700; font-size: .95rem; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.section-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.section-h h2 { font-size: 1.5rem; }
+.sigs { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.sig { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 8px; }
+.sig .pic { aspect-ratio: 1.6; max-width: 100%; border-radius: 12px; background: var(--surface-2); display: grid; place-items: center; overflow: hidden; }
+.sig .pic svg { width: 62%; height: auto; }
+.sig h3 { font-size: 1.15rem; }
+.sig .facts { display: flex; gap: 12px; flex-wrap: wrap; font-weight: 700; font-size: .95rem; }
+.sig .facts .p { color: var(--protein); }
+.badge { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border-radius: 999px; font-size: .75rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; background: var(--accent-soft); color: var(--accent); justify-self: start; }
+.badge.green { background: var(--surface-2); color: var(--primary); }
+.fine { color: var(--muted); font-size: .85rem; display: grid; gap: 4px; }
+.fine p { margin: 0; }
+
+/* Builder */
+.builder { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 380px; min-height: 0; }
+.stage { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.stage-h { display: flex; align-items: end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.stage-h h1 { font-size: clamp(1.7rem, 3vw, 2.3rem); font-weight: 800; }
+.stage-h p { margin: 4px 0 0; color: var(--muted); font-weight: 600; }
+.active-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.msg { min-height: 0; }
+.msg .bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-radius: 14px; background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+.card { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); display: flex; flex-direction: column; overflow: hidden; }
+.card.sel { border: 2px solid var(--primary); box-shadow: var(--shadow); }
+.card.dim .card-main { opacity: .55; }
+.card.out .card-main { opacity: .45; filter: grayscale(1); cursor: not-allowed; }
+.card-main { text-align: left; display: grid; gap: 6px; padding: 12px 12px 14px; min-height: 64px; }
+.thumb { aspect-ratio: 1.45; max-width: 100%; border-radius: 12px; background: var(--surface-2); display: grid; place-items: center; position: relative; }
+.thumb svg { width: 58%; height: auto; }
+.check { position: absolute; top: 8px; left: 8px; width: 30px; height: 30px; border-radius: 50%; background: var(--primary); color: var(--primary-ink); display: grid; place-items: center; }
+.check svg { width: 18px; height: 18px; }
+.nm { font-weight: 800; font-size: 1.05rem; line-height: 1.2; }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 10px; font-weight: 700; font-size: .92rem; }
+.meta .p { color: var(--protein); }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag { font-size: .72rem; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.tag.price { background: var(--accent-soft); color: var(--accent); }
+.tag.goal { background: var(--ink); color: var(--bg); }
+.reason { font-size: .85rem; font-weight: 700; color: var(--accent); }
+.rm { position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); display: grid; place-items: center; font-size: 1.3rem; font-weight: 700; }
+.portion { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 0 8px 8px; }
+.portion button { min-height: 56px; border-radius: 10px; background: var(--surface-2); font-weight: 800; font-size: .85rem; display: grid; align-content: center; line-height: 1.15; }
+.portion button small { font-weight: 600; font-size: .72rem; color: var(--muted); }
+.portion button[aria-pressed="true"] { background: var(--primary); color: var(--primary-ink); }
+.portion button[aria-pressed="true"] small { color: inherit; opacity: .85; }
+.halfnote { margin: 0 8px 8px; padding: 10px; border-radius: 10px; background: var(--surface-2); font-weight: 700; font-size: .85rem; text-align: center; }
+.side-t { margin: 0 8px 8px; min-height: 48px; border-radius: 10px; border: 1px dashed var(--line); font-weight: 700; font-size: .85rem; }
+.side-t[aria-pressed="true"] { border-style: solid; border-color: var(--primary); color: var(--primary); }
+.confirm { margin: 0 8px 8px; padding: 10px; border-radius: 12px; background: var(--accent-soft); display: grid; gap: 8px; font-weight: 700; font-size: .9rem; }
+.confirm div { display: flex; gap: 6px; }
+.confirm button { flex: 1; min-height: 48px; border-radius: 10px; background: var(--surface); font-weight: 800; }
+.confirm button.yes { background: var(--ink); color: var(--bg); }
+@keyframes shake { 0%,100% { transform: none } 25% { transform: translateX(-6px) } 75% { transform: translateX(6px) } }
+.shake { animation: shake .25s 2; }
+.navrow { display: flex; gap: 12px; justify-content: space-between; align-items: center; padding-top: 4px; }
+
+/* Panel */
+.panel { background: var(--surface); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+.sheet-bar { display: none; }
+.panel-body { padding: 20px; display: grid; gap: 16px; align-content: start; overflow-y: auto; flex: 1; }
+.panel-body h2 { font-size: 1.2rem; }
+.bowlwrap { width: 220px; max-width: 100%; aspect-ratio: 1; margin: 0 auto; }
+.bowlwrap svg { width: 100%; height: 100%; }
+.totals { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 6px 12px; }
+.big { font-family: var(--font-display); font-weight: 800; font-size: 3rem; line-height: .9; }
+.big small { font-family: var(--font-body); font-size: 1rem; font-weight: 700; color: var(--muted); margin-left: 4px; }
+.pline { font-weight: 800; font-size: 1.15rem; color: var(--protein); }
+.seg { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--surface-2); }
+.seg button { min-height: 40px; padding: 0 14px; border-radius: 999px; font-weight: 700; font-size: .85rem; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.full { display: grid; grid-template-columns: 92px 1fr; gap: 14px; align-items: center; }
+.ring svg { width: 92px; height: 92px; }
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: 58px 1fr 52px; gap: 8px; align-items: center; font-size: .85rem; font-weight: 700; }
+.bar-row .v { text-align: right; }
+.track { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.track i { display: block; height: 100%; border-radius: 99px; transition: width .25s; }
+.extra-rows { grid-column: 1 / -1; display: flex; gap: 16px; flex-wrap: wrap; font-size: .85rem; font-weight: 700; color: var(--muted); }
+.dv-note { grid-column: 1 / -1; font-size: .75rem; color: var(--muted); margin: 0; }
+.goalbox { border-radius: 14px; background: var(--surface-2); padding: 12px 14px; display: grid; gap: 8px; }
+.goalbox .row { display: flex; justify-content: space-between; gap: 8px; font-weight: 800; font-size: .95rem; }
+.goalbox .row span:last-child { color: var(--muted); }
+.goalbox .track i { background: var(--ink); }
+.goalbox.ok .row span:last-child { color: var(--primary); }
+.sugg { display: grid; gap: 6px; }
+.sugg button { text-align: left; min-height: 56px; padding: 8px 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); font-weight: 700; font-size: .9rem; display: grid; }
+.sugg button small { color: var(--muted); font-weight: 600; }
+.picked { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.picked button { width: 100%; display: flex; justify-content: space-between; gap: 8px; text-align: left; min-height: 40px; padding: 4px 6px; border-radius: 8px; font-weight: 600; font-size: .92rem; }
+.picked button .sw-c { width: 12px; height: 12px; border-radius: 50%; flex: none; margin-top: 5px; border: 1px solid rgba(0,0,0,.15); }
+.picked button span.l { display: flex; gap: 8px; }
+.picked button span.r { color: var(--muted); white-space: nowrap; }
+.empty { color: var(--muted); font-weight: 600; margin: 0; }
+.panel-foot { padding: 16px 20px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+.pricerow { display: flex; justify-content: space-between; align-items: baseline; font-weight: 800; font-size: 1.2rem; }
+.pricerow small { color: var(--muted); font-weight: 600; font-size: .85rem; }
+
+/* Review / checkout / done */
+.review { display: grid; grid-template-columns: minmax(0, 1fr) 380px; flex: 1; min-height: 0; }
+.review .stage { padding-bottom: 32px; }
+.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+table.nf { width: 100%; border-collapse: collapse; font-size: .92rem; min-width: 620px; }
+table.nf th, table.nf td { padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.nf th:first-child, table.nf td:first-child { text-align: left; white-space: normal; }
+table.nf thead th { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+table.nf tfoot td { font-weight: 800; border-bottom: 0; border-top: 3px solid var(--ink); }
+table.nf td .step { display: block; font-size: .72rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.edit-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.edit-row button { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); font-weight: 700; font-size: .85rem; }
+.kv { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.kv b { margin-right: 4px; }
+.suggest-card { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); }
+.suggest-card .t { font-weight: 800; }
+.suggest-card .s { color: var(--muted); font-size: .88rem; font-weight: 600; }
+.suggest-card .acts { display: flex; gap: 6px; }
+.suggest-card .acts button { min-height: 48px; padding: 0 14px; border-radius: 999px; font-weight: 800; border: 1px solid var(--line); }
+.suggest-card .acts button.add { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.checkout, .done { flex: 1; display: grid; place-items: center; }
+.box { width: min(560px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 28px; display: grid; gap: 20px; box-shadow: var(--shadow); }
+.box h1 { font-size: 2rem; font-weight: 800; }
+.dine { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.dine button { min-height: 96px; border-radius: 18px; border: 2px solid var(--line); font-weight: 800; font-size: 1.15rem; }
+.dine button[aria-pressed="true"] { border-color: var(--primary); background: var(--surface-2); }
+.sumrows { display: grid; gap: 6px; font-weight: 600; }
+.sumrows div { display: flex; justify-content: space-between; }
+.sumrows .tot { font-weight: 800; font-size: 1.2rem; border-top: 1px solid var(--line); padding-top: 8px; }
+.ordno { font-family: var(--font-display); font-size: clamp(4rem, 14vw, 7rem); font-weight: 800; line-height: 1; color: var(--primary); text-align: center; }
+.done .box { text-align: center; }
+.code { font-family: var(--font-display); font-weight: 800; letter-spacing: .18em; font-size: 1.6rem; padding: 10px 16px; border-radius: 12px; background: var(--surface-2); justify-self: center; }
+
+/* Idle overlay */
+.overlay { position: fixed; inset: 0; z-index: 60; background: rgba(10,16,12,.55); display: grid; place-items: center; padding: 16px; }
+.overlay .box { text-align: center; }
+.overlay .count { font-family: var(--font-display); font-size: 4rem; font-weight: 800; }
+
+@keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+.pop { transform-box: fill-box; transform-origin: center; animation: pop .22s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .attract .bowl-hero svg, .pop, .shake { animation: none; }
+  .track i, .toggle .sw::after { transition: none; }
+}
+
+/* Landscape kiosk: the page never scrolls; the ingredient area scrolls and the bowl panel stays put */
+@media (min-width: 900px) {
+  #app { height: 100%; }
+  #screen { overflow-y: auto; }
+  .builder, .review { grid-template-rows: minmax(0, 1fr); }
+  .builder .stage, .review .stage { overflow-y: auto; }
+}
+
+/* Portrait / narrow: panel becomes a bottom sheet */
+@media (max-width: 899px) {
+  .builder, .review { grid-template-columns: 1fr; }
+  .stage { padding-bottom: 120px !important; }
+  .panel { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; border-left: 0; border-top: 1px solid var(--line); box-shadow: 0 -8px 24px rgba(0,0,0,.12); max-height: 82vh;
+    padding-bottom: env(safe-area-inset-bottom, 0px); border-radius: 22px 22px 0 0; }
+  .sheet-bar { display: flex; align-items: center; gap: 10px; padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
+  .sheet-bar .sum { flex: 1; min-width: 0; text-align: left; display: grid; min-height: 56px; align-content: center; }
+  .sheet-bar .sum b { font-size: 1.1rem; }
+  .sheet-bar .sum span { color: var(--muted); font-size: .85rem; font-weight: 700; }
+  .sheet-bar .cta { min-height: 56px; padding: 0 20px; font-size: 1rem; }
+  .panel:not(.open) .panel-body, .panel .panel-foot { display: none; }
+  .panel.open .panel-body { border-top: 1px solid var(--line); }
+  .home-top { grid-template-columns: 1fr; }
+  .a11y-btn .lbl { display: none; }
+}
+@media (max-width: 520px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .portion button { font-size: .78rem; }
+  .portion button small { display: none; }
+  .topbar { flex-wrap: wrap; }
+  .steps { order: 3; flex-basis: 100%; }
+  .big { font-size: 2.4rem; }
+}
+</style>
+
+<div id="app">
+  <header class="topbar">
+    <div class="brand" aria-label="Bowl Lab">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M4 18h32a16 16 0 0 1-32 0z" fill="var(--primary)"/><circle cx="14" cy="14" r="4" fill="var(--accent)"/><circle cx="22" cy="11" r="3.5" fill="var(--carbs)"/><circle cx="28" cy="15" r="3" fill="var(--fiber)"/></svg>
+      Bowl Lab
+    </div>
+    <nav class="steps" id="steps" aria-label="Bowl steps"></nav>
+    <button class="a11y-btn" data-act="a11y" aria-expanded="false" aria-controls="a11yPop">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="4.5" r="1.8" fill="currentColor"/><path d="M5 8.5l7 1.5 7-1.5M12 10v5m0 0l-3.5 6M12 15l3.5 6"/></svg>
+      <span class="lbl">Accessibility</span>
+    </button>
+  </header>
+  <div id="a11yPop" class="a11y-pop" hidden></div>
+  <main id="screen" aria-live="off"></main>
+  <div id="live" class="sr" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></div>
+</div>
+
+<script>
+/* ---------- Seed menu (from PROMPT.md section 8; values per Regular portion) ---------- */
+const V = ['vegan','vegetarian','gluten_free','dairy_free'];
+// n = [cal, protein g, carbs g, fat g, fiber g, sugar g, added sugar g, sodium mg]
+const MENU = [
+  {id:'white-rice', step:'base', name:'Jasmine White Rice', g:150, n:[195,4,42,.5,.6,0,0,300], tags:V, al:[], color:'#EFE9D8'},
+  {id:'brown-rice', step:'base', name:'Brown Rice', g:150, n:[170,4,35,1.5,2.7,.5,0,300], tags:V, al:[], color:'#B88B5C'},
+  {id:'quinoa', step:'base', name:'Quinoa', g:150, n:[180,6.5,32,3,4,1,0,250], tags:V, al:[], color:'#D8C182'},
+  {id:'greens', step:'base', name:'Mixed Greens', g:75, n:[15,1,3,0,1.5,1,0,25], tags:V, al:[], color:'#5E9F45'},
+  {id:'cauli-rice', step:'base', name:'Cauliflower Rice', g:150, n:[40,3,7,.5,3,2,0,200], tags:V, al:[], color:'#E4E1D2', badges:['Low carb']},
+
+  {id:'grilled-chicken', step:'protein', name:'Grilled Chicken', g:113, n:[190,35,0,4.5,0,0,0,380], tags:['gluten_free','dairy_free'], al:[], color:'#D49A5C', bowl:1195, dbl:350, badges:['High protein']},
+  {id:'grilled-steak', step:'protein', name:'Grilled Steak', g:113, n:[230,32,0,11,0,0,0,400], tags:['gluten_free','dairy_free'], al:[], color:'#87463A', bowl:1395, dbl:450, badges:['High protein']},
+  {id:'roasted-salmon', step:'protein', name:'Roasted Salmon', g:113, n:[235,25,0,15,0,0,0,300], tags:['gluten_free','dairy_free'], al:['fish'], color:'#EE8763', bowl:1445, dbl:495},
+  {id:'garlic-shrimp', step:'protein', name:'Garlic Shrimp', g:113, n:[135,26,1,3,0,0,0,450], tags:['gluten_free','dairy_free'], al:['shellfish'], color:'#F3A58C', bowl:1345, dbl:425},
+  {id:'baked-tofu', step:'protein', name:'Baked Tofu', g:113, n:[170,18,4,10,1,1,0,350], tags:V, al:['soy'], color:'#E6D39C', bowl:1095, dbl:250},
+  {id:'no-protein', step:'protein', name:'No Protein (Veggie Bowl)', g:0, n:[0,0,0,0,0,0,0,0], tags:V, al:[], color:'#C9D3C2', bowl:995, dbl:0},
+
+  {id:'roasted-broccoli', step:'veggies', name:'Roasted Broccoli', g:60, n:[40,2,4,2,1.5,1,0,120], tags:V, al:[], color:'#3D8A37'},
+  {id:'charred-corn', step:'veggies', name:'Charred Corn', g:50, n:[50,1.5,10,.5,1,3,0,120], tags:V, al:[], color:'#F0BF2C'},
+  {id:'black-beans', step:'veggies', name:'Black Beans', g:60, n:[80,5,14,.5,5,.5,0,200], tags:V, al:[], color:'#2D2933'},
+  {id:'cucumber', step:'veggies', name:'Cucumber', g:50, n:[10,.5,2,0,.5,1,0,0], tags:V, al:[], color:'#A3D277'},
+  {id:'edamame', step:'veggies', name:'Edamame', g:50, n:[60,5.5,4.5,2.5,2.5,1,0,150], tags:V, al:['soy'], color:'#76B648'},
+  {id:'pickled-onion', step:'veggies', name:'Pickled Red Onion', g:20, n:[10,0,2.5,0,.3,2.5,2,120], tags:V, al:[], color:'#C0437B'},
+  {id:'cherry-tomatoes', step:'veggies', name:'Cherry Tomatoes', g:50, n:[10,.5,2,0,.6,1.5,0,5], tags:V, al:[], color:'#E2463A', soldOut:true},
+
+  {id:'avocado', step:'toppings', name:'Avocado', g:50, n:[80,1,4.5,7.5,3.5,0,0,5], tags:V, al:[], color:'#97C057', price:225, premium:true},
+  {id:'soft-egg', step:'toppings', name:'Soft-Boiled Egg', g:50, n:[75,6.5,.5,5,0,0,0,70], tags:['vegetarian','gluten_free','dairy_free'], al:['egg'], color:'#F4C13F', price:150, premium:true},
+  {id:'feta', step:'toppings', name:'Feta', g:28, n:[75,4,1,6,0,1,0,320], tags:['vegetarian','gluten_free'], al:['milk'], color:'#F3F0E4'},
+  {id:'sesame-seeds', step:'toppings', name:'Toasted Sesame Seeds', g:9, n:[50,1.5,2,4.5,1,0,0,0], tags:V, al:['sesame'], color:'#E5D3A2'},
+  {id:'crispy-shallots', step:'toppings', name:'Crispy Shallots', g:15, n:[80,1,6,6,.5,2,0,150], tags:['vegan','vegetarian','dairy_free'], al:['wheat'], color:'#C5873A'},
+
+  {id:'lemon-tahini', step:'sauces', name:'Lemon Tahini', g:30, n:[90,2.5,3.5,8,1,1,0,150], tags:V, al:['sesame'], color:'#D8BE8F'},
+  {id:'spicy-mayo', step:'sauces', name:'Spicy Mayo', g:30, n:[160,0,1,17,0,1,0,250], tags:['vegetarian','gluten_free','dairy_free'], al:['egg'], color:'#EE8448'},
+  {id:'teriyaki', step:'sauces', name:'Teriyaki', g:30, n:[50,1,11,0,0,9,8,700], tags:['vegan','vegetarian','dairy_free'], al:['soy','wheat'], color:'#5A341F'},
+  {id:'salsa-verde', step:'sauces', name:'Salsa Verde', g:30, n:[10,0,2,0,.5,1,0,250], tags:V, al:[], color:'#7BAA45'},
+  {id:'yogurt-herb', step:'sauces', name:'Greek Yogurt Herb', g:30, n:[35,2.5,1.5,2,0,1.5,0,120], tags:['vegetarian','gluten_free'], al:['milk'], color:'#EFEDE3'},
+];
+const STEPS = [
+  {id:'base', label:'Base', title:'Choose your base', sub:'Pick 1, or 2 for half & half. All included.', min:1, max:2, portions:['light','regular','extra'], noun:'bases'},
+  {id:'protein', label:'Protein', title:'Pick a protein', sub:'Your protein sets the bowl price.', min:1, max:1, portions:['light','regular','double'], noun:'protein'},
+  {id:'veggies', label:'Veggies', title:'Add veggies', sub:'Up to 4, all included.', min:0, max:4, portions:['light','regular','extra'], noun:'veggies'},
+  {id:'toppings', label:'Toppings', title:'Toppings', sub:'2 standard toppings included, then $0.75 each. Premium priced as shown.', min:0, max:5, portions:['light','regular','extra'], noun:'toppings'},
+  {id:'sauces', label:'Sauce', title:'Finish with sauce', sub:'Up to 2, all included. Any sauce can go on the side.', min:0, max:2, portions:['light','regular','extra'], noun:'sauces'},
+];
+const SIGS = [
+  {name:'Protein Power', badge:'High protein', lines:[['quinoa'],['grilled-chicken','double'],['roasted-broccoli'],['edamame'],['soft-egg'],['yogurt-herb']]},
+  {name:'Green Machine', badge:'Vegan', lines:[['greens'],['baked-tofu'],['cucumber'],['edamame'],['avocado'],['lemon-tahini']]},
+  {name:'Steakhouse', badge:'Popular', lines:[['brown-rice'],['grilled-steak'],['charred-corn'],['pickled-onion'],['feta'],['salsa-verde']]},
+  {name:'Teriyaki Salmon', lines:[['white-rice'],['roasted-salmon'],['edamame'],['cucumber'],['sesame-seeds'],['teriyaki']]},
+  {name:'Lean & Light', lines:[['cauli-rice'],['garlic-shrimp'],['cucumber'],['charred-corn'],['salsa-verde']]},
+];
+const GOALS = {
+  protein: {label:'High protein', metric:1, op:'min', target:40, unit:'g protein'},
+  lighter: {label:'Lighter', metric:0, op:'max', target:450, unit:'cal'},
+  u600: {label:'Under 600', metric:0, op:'max', target:600, unit:'cal'},
+  lowcarb: {label:'Low carb', metric:2, op:'max', target:30, unit:'g carbs'},
+  balanced: {label:'Balanced'},
+};
+const FILTERS = {vegan:'Vegan', vegetarian:'Vegetarian', gluten_free:'Gluten-free', dairy_free:'Dairy-free'};
+const MULT = {light:.5, half:.5, regular:1, extra:1.5, double:2};
+const PNAME = {light:'Light', half:'Half', regular:'Regular', extra:'Extra', double:'Double'};
+const TAX = 0.08;
+const byId = Object.fromEntries(MENU.map(m => [m.id, m]));
+const stepOf = id => STEPS.find(s => s.id === id);
+
+/* ---------- Core (pure) ---------- */
+function effPortion(line, lines) {
+  const it = byId[line.id];
+  if (it.step === 'base' && lines.filter(l => byId[l.id].step === 'base').length === 2) return 'half';
+  return line.portion;
+}
+function totals(lines) {
+  const t = [0,0,0,0,0,0,0,0];
+  for (const l of lines) { const m = MULT[effPortion(l, lines)]; byId[l.id].n.forEach((v, i) => t[i] += v * m); }
+  return t;
+}
+const halfUp = x => Math.floor(x + 0.5);
+function roundCal(n) { if (n < 5) return 0; if (n <= 50) return halfUp(n / 5) * 5; return halfUp(n / 10) * 10; }
+function roundG(n) { return n < 0.5 ? 0 : halfUp(n); }
+function roundNa(n) { if (n < 5) return 0; if (n <= 140) return halfUp(n / 5) * 5; return halfUp(n / 10) * 10; }
+function price(lines) {
+  const pr = lines.find(l => byId[l.id].step === 'protein');
+  if (!pr) return null;
+  let c = byId[pr.id].bowl + (pr.portion === 'double' ? byId[pr.id].dbl : 0);
+  let std = 0;
+  for (const l of lines) { const it = byId[l.id]; if (it.step !== 'toppings') continue; if (it.premium) c += it.price; else std++; }
+  return c + Math.max(0, std - 2) * 75;
+}
+const tax = cents => Math.floor((cents * TAX * 100 + 50) / 100);
+const money = c => c == null ? '—' : '$' + (c / 100).toFixed(2);
+function bowlTags(lines) { return Object.keys(FILTERS).filter(f => lines.length && lines.every(l => byId[l.id].tags.includes(f))); }
+function bowlAllergens(lines) { return [...new Set(lines.flatMap(l => byId[l.id].al))]; }
+function blockReason(it, filters) {
+  for (const f of filters) {
+    if (it.tags.includes(f)) continue;
+    if (f === 'gluten_free') return 'Contains wheat';
+    if (f === 'dairy_free' || (f === 'vegan' && it.al.includes('milk'))) return 'Contains milk';
+    if (f === 'vegan' && it.al.includes('egg')) return 'Contains egg';
+    if (it.al.includes('fish')) return 'Contains fish';
+    if (it.al.includes('shellfish')) return 'Contains shellfish';
+    return 'Contains meat';
+  }
+  return null;
+}
+function goalStatus(goalKey, t) {
+  const g = GOALS[goalKey]; if (!g || g.metric == null) return null;
+  const raw = t[g.metric], shown = g.metric === 0 ? roundCal(raw) : roundG(raw);
+  const ok = g.op === 'min' ? shown >= g.target : shown <= g.target;
+  const pct = g.op === 'min' ? Math.min(1, shown / g.target) : Math.min(1, shown / g.target);
+  let text = 'On track';
+  if (!ok) text = g.op === 'min' ? `${g.target - shown} g to go` : `${shown - g.target} ${g.metric === 0 ? 'cal' : 'g'} over goal`;
+  return {ok, text, shown, pct, g};
+}
+// Rule-based one-tap changes that move the goal metric the most.
+function goalSuggestions(lines, goalKey, filters, max = 2) {
+  const g = GOALS[goalKey]; if (!g || g.metric == null) return [];
+  const st = goalStatus(goalKey, totals(lines)); if (st.ok) return [];
+  const cur = totals(lines)[g.metric], curPrice = price(lines) ?? 0;
+  const ok = it => !it.soldOut && !blockReason(it, filters) && !(g.op === 'min' && it.id === 'no-protein');
+  const cands = [];
+  const has = id => lines.some(l => l.id === id);
+  lines.forEach((l, i) => {
+    const it = byId[l.id], s = stepOf(it.step);
+    if (effPortion(l, lines) !== 'half') s.portions.forEach(p => { if (p !== l.portion) cands.push({text:`Make ${it.name} ${PNAME[p]}`, lines: lines.map((x, j) => j === i ? {...x, portion:p} : x), key:'l' + i}); });
+    MENU.filter(m => m.step === it.step && m.id !== it.id && !has(m.id) && ok(m)).forEach(m => cands.push({text:`Swap ${it.name} for ${m.name}`, lines: lines.map((x, j) => j === i ? {id:m.id, portion:'regular'} : x), key:'l' + i}));
+  });
+  STEPS.forEach(s => {
+    if (s.id === 'protein' || lines.filter(l => byId[l.id].step === s.id).length >= s.max) return;
+    MENU.filter(m => m.step === s.id && !has(m.id) && ok(m)).forEach(m => cands.push({text:`Add ${m.name}`, lines:[...lines, {id:m.id, portion:'regular'}], key:'add-' + s.id}));
+  });
+  const scored = cands.map(c => {
+    const v = totals(c.lines)[g.metric];
+    const gain = g.op === 'min' ? v - cur : cur - v;
+    const dp = (price(c.lines) ?? 0) - curPrice;
+    const unit = g.metric === 0 ? `${g.op === 'min' ? '+' : '−'}${roundCal(Math.abs(v - cur))} cal` : `${g.op === 'min' ? '+' : '−'}${roundG(Math.abs(v - cur))} ${g.unit}`;
+    return {...c, gain, note: unit + (dp ? ` · ${dp > 0 ? '+' : '−'}${money(Math.abs(dp))}` : ' · no extra cost')};
+  }).filter(c => c.gain > 0.25).sort((a, b) => b.gain - a.gain);
+  const out = [], used = new Set();
+  for (const c of scored) { if (used.has(c.key)) continue; used.add(c.key); out.push(c); if (out.length === max) break; }
+  return out;
+}
+const CODE_CHARS = 'ACDEFHJKMNPRTUVWXY34679';
+const makeCode = () => Array.from({length:6}, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
+window.bowlCore = {totals, price, roundCal, roundG, roundNa, tax};
+
+/* ---------- Drawing ---------- */
+function rng(seed) { let s = 0; for (const ch of seed) s = (s * 31 + ch.charCodeAt(0)) >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+function bowlSVG(lines, opts = {}) {
+  const fresh = opts.fresh || new Set();
+  const bases = lines.filter(l => byId[l.id].step === 'base');
+  const mids = lines.filter(l => ['protein','veggies','toppings'].includes(byId[l.id].step) && l.id !== 'no-protein');
+  const sauces = lines.filter(l => byId[l.id].step === 'sauces');
+  let s = `<svg viewBox="-112 -112 224 224" role="img" aria-label="${opts.label || 'Your bowl'}">`;
+  s += `<circle r="106" fill="var(--bowl-rim)" stroke="var(--line)" stroke-width="2"/><circle r="88" fill="var(--bowl-in)"/>`;
+  if (bases.length === 1) s += `<circle r="86" fill="${byId[bases[0].id].color}" class="${fresh.has(bases[0].id) ? 'pop' : ''}"/>`;
+  if (bases.length === 2) s += `<path d="M0 -86 A86 86 0 0 0 0 86 Z" fill="${byId[bases[0].id].color}"/><path d="M0 -86 A86 86 0 0 1 0 86 Z" fill="${byId[bases[1].id].color}"/>`;
+  const gr = rng('grain');
+  if (bases.length) s += `<g fill="rgba(0,0,0,.07)">${Array.from({length:40}, () => { const r = gr; const a = r() * 6.283, d = Math.sqrt(r()) * 80; return `<circle cx="${(Math.cos(a) * d).toFixed(1)}" cy="${(Math.sin(a) * d).toFixed(1)}" r="1.6"/>`; }).join('')}</g>`;
+  const K = mids.length;
+  mids.forEach((l, i) => {
+    const it = byId[l.id], m = MULT[l.portion], r = rng(it.id);
+    const a0 = i / K * 6.283 - 1.57, span = 6.283 / K;
+    const count = Math.max(3, Math.round((it.step === 'protein' ? 6 : 7) * m));
+    const big = it.step === 'protein' ? 10 : it.step === 'toppings' ? 6 : 7;
+    let dots = '';
+    for (let k = 0; k < count; k++) {
+      const a = a0 + span * (0.12 + r() * 0.76), d = (K === 1 ? 0 : 26) + r() * (K === 1 ? 60 : 50);
+      const rr = big * (0.75 + r() * 0.5);
+      dots += it.step === 'protein'
+        ? `<rect x="${(Math.cos(a) * d - rr).toFixed(1)}" y="${(Math.sin(a) * d - rr * .7).toFixed(1)}" width="${(rr * 2).toFixed(1)}" height="${(rr * 1.4).toFixed(1)}" rx="3" transform="rotate(${Math.round(r() * 80 - 40)} ${(Math.cos(a) * d).toFixed(1)} ${(Math.sin(a) * d).toFixed(1)})"/>`
+        : `<circle cx="${(Math.cos(a) * d).toFixed(1)}" cy="${(Math.sin(a) * d).toFixed(1)}" r="${rr.toFixed(1)}"/>`;
+    }
+    s += `<g fill="${it.color}" stroke="rgba(0,0,0,.18)" stroke-width="1" class="${fresh.has(it.id) ? 'pop' : ''}">${dots}</g>`;
+  });
+  sauces.forEach((l, i) => {
+    const it = byId[l.id];
+    if (l.onSide) { s += `<circle cx="${82 - i * 26}" cy="86" r="14" fill="var(--bowl-rim)" stroke="var(--line)" stroke-width="2"/><circle cx="${82 - i * 26}" cy="86" r="9" fill="${it.color}"/>`; return; }
+    const y = -18 + i * 30, w = 4 + 3 * MULT[l.portion];
+    s += `<path d="M-62 ${y} q15 -16 31 0 t31 0 t31 0 t31 0" fill="none" stroke="${it.color}" stroke-width="${w}" stroke-linecap="round" opacity=".92" class="${fresh.has(it.id) ? 'pop' : ''}"/>`;
+  });
+  if (!lines.length) s += `<text y="6" text-anchor="middle" font-family="Manrope, sans-serif" font-weight="700" font-size="15" fill="var(--muted)">Your bowl</text>`;
+  return s + '</svg>';
+}
+function thumb(it) {
+  const r = rng(it.id);
+  let dots = '';
+  for (let k = 0; k < 9; k++) { const a = r() * 6.283, d = Math.sqrt(r()) * 26; dots += `<circle cx="${(Math.cos(a) * d).toFixed(1)}" cy="${(Math.sin(a) * d).toFixed(1)}" r="${(7 + r() * 5).toFixed(1)}"/>`; }
+  return `<svg viewBox="-50 -50 100 100" aria-hidden="true"><circle r="46" fill="var(--bowl-rim)" stroke="var(--line)"/><g fill="${it.color}" stroke="rgba(0,0,0,.18)">${dots}</g></svg>`;
+}
+function ring(t) {
+  const k = [t[1] * 4, t[2] * 4, t[3] * 9], sum = k.reduce((a, b) => a + b, 0);
+  const C = 2 * Math.PI * 38; let off = 0, segs = '';
+  if (sum > 0) ['var(--protein)','var(--carbs)','var(--fat)'].forEach((c, i) => { const len = k[i] / sum * C; segs += `<circle r="38" fill="none" stroke="${c}" stroke-width="12" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90)"/>`; off += len; });
+  const pct = i => sum ? Math.round(k[i] / sum * 100) : 0;
+  return `<svg viewBox="-50 -50 100 100" role="img" aria-label="Calories from protein ${pct(0)}%, carbs ${pct(1)}%, fat ${pct(2)}%"><circle r="38" fill="none" stroke="var(--surface-2)" stroke-width="12"/>${segs}<text y="-2" text-anchor="middle" font-size="15" font-weight="800" fill="var(--ink)" font-family="Manrope, sans-serif">${pct(0)}%</text><text y="13" text-anchor="middle" font-size="9" font-weight="700" fill="var(--muted)" font-family="Manrope, sans-serif">protein</text></svg>`;
+}
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+/* ---------- State ---------- */
+const S = {screen:'attract', step:0, lines:[], goal:null, filters:[], view:'simple', pending:null, msg:null, shake:null,
+  sheetOpen:false, dining:null, sugDismissed:false, order:null, a11y:{large:false, hc:false, reach:false, audio:false}, a11yOpen:false, idle:null};
+let prevIds = new Set(), lastTouch = Date.now(), advanceTimer = null, doneTimer = null;
+
+function reset() {
+  Object.assign(S, {screen:'attract', step:0, lines:[], goal:null, filters:[], view:'simple', pending:null, msg:null, sheetOpen:false, dining:null, sugDismissed:false, order:null, idle:null});
+  clearTimeout(doneTimer);
+}
+const stepLines = id => S.lines.filter(l => byId[l.id].step === id);
+const stepMet = s => stepLines(s.id).length >= s.min;
+const reqDone = () => STEPS.filter(s => s.min > 0).every(stepMet);
+
+/* ---------- Views ---------- */
+function stepsNav() {
+  if (!['build','review'].includes(S.screen)) return '';
+  const cur = S.screen === 'review' ? 5 : S.step;
+  const items = [...STEPS.map(s => s.label), 'Review'].map((lab, i) => {
+    const done = i < 5 ? stepLines(STEPS[i].id).length > 0 : false;
+    const reachable = i <= 5 && (i === 5 ? reqDone() : (i <= S.step || reqDone() || STEPS.slice(0, i).every(stepMet)));
+    return `<li class="${i === cur ? 'cur' : ''} ${done ? 'done' : ''}"><button data-act="gostep" data-i="${i}" ${reachable ? '' : 'disabled'} ${i === cur ? 'aria-current="step"' : ''}><span class="dot">${done ? CHECK.replace('stroke-width="3"', 'stroke-width="4" width="12" height="12"') : i + 1}</span>${lab}</button></li>`;
+  }).join('');
+  return `<ol>${items}</ol>`;
+}
+
+function attractView() {
+  const demo = SIGS[0].lines.map(([id, p]) => ({id, portion:p || 'regular'}));
+  return `<section class="attract wrap" data-act="start" aria-label="Start ordering">
+    <div class="bowl-hero">${bowlSVG(demo, {label:'A Protein Power bowl'})}</div>
+    <div style="display:grid;gap:12px;justify-items:center">
+      <h1>Build your bowl.<br>See every gram.</h1>
+      <p>Pick what goes in. Calories, protein, carbs and fat update with every tap.</p>
+    </div>
+    <button class="cta" data-act="start">Tap to order</button>
+  </section>`;
+}
+
+function homeView() {
+  const sigCards = SIGS.map((sg, i) => {
+    const lines = sg.lines.map(([id, p]) => ({id, portion:p || 'regular'}));
+    const t = totals(lines), blocked = lines.map(l => blockReason(byId[l.id], S.filters)).find(Boolean);
+    return `<button class="sig" data-act="sig" data-i="${i}" aria-label="${sg.name}, ${money(price(lines))}, ${roundCal(t[0])} calories, ${roundG(t[1])} grams protein">
+      <div class="pic">${bowlSVG(lines, {label:sg.name})}</div>
+      <span class="badge ${sg.badge === 'Vegan' ? 'green' : ''}" ${sg.badge ? '' : 'style="visibility:hidden" aria-hidden="true"'}>${sg.badge || 'None'}</span>
+      <h3>${sg.name}</h3>
+      <div class="facts num"><span>${money(price(lines))}</span><span>${roundCal(t[0])} cal</span><span class="p">${roundG(t[1])} g protein</span></div>
+      ${blocked ? `<span class="reason">${blocked}</span>` : ''}
+    </button>`;
+  }).join('');
+  return `<div class="wrap"><div class="home">
+    <div class="home-top">
+      <button class="byo" data-act="build">
+        <svg class="deco" viewBox="-112 -112 224 224" aria-hidden="true"><circle r="106" fill="rgba(255,255,255,.12)"/><circle r="80" fill="rgba(255,255,255,.12)"/></svg>
+        <h2>Build your own bowl</h2>
+        <p>5 quick steps · from $9.95 · see every macro as you go</p>
+        <span class="go">Start building</span>
+      </button>
+      <div class="prefs">
+        <h3>Have a goal? <span style="color:var(--muted);font-weight:600">(optional)</span></h3>
+        <p class="hint">We'll show how each choice moves you toward it.</p>
+        <div class="chips">${Object.entries(GOALS).map(([k, g]) => `<button class="chip" data-act="goal" data-k="${k}" aria-pressed="${S.goal === k}">${g.label}${g.target ? ` <span style="opacity:.7;font-weight:600">${g.op === 'min' ? '≥' : '≤'} ${g.target}${g.metric === 0 ? '' : ' g'}</span>` : ''}</button>`).join('')}</div>
+        <h3>Eating a certain way?</h3>
+        <div class="chips">${Object.entries(FILTERS).map(([k, l]) => `<button class="chip" data-act="filter" data-k="${k}" aria-pressed="${S.filters.includes(k)}">${l}</button>`).join('')}</div>
+      </div>
+    </div>
+    <div class="section-h"><h2>Signature bowls</h2><span style="color:var(--muted);font-weight:600">Tap to order or customize</span></div>
+    <div class="sigs">${sigCards}</div>
+    <div class="fine"><p>2,000 calories a day is used for general nutrition advice, but calorie needs vary. Additional nutrition information available upon request.</p><p>Prototype with sample data. Cherry tomatoes are marked sold out to show that state.</p></div>
+  </div></div>`;
+}
+
+function cardView(it, s) {
+  const line = S.lines.find(l => l.id === it.id), sel = !!line;
+  const reason = blockReason(it, S.filters);
+  const gs = S.goal && GOALS[S.goal].metric != null ? GOALS[S.goal] : null;
+  let goalTag = '';
+  if (gs && !sel && it.n[gs.metric] >= 0.5) { const v = it.n[gs.metric]; goalTag = `<span class="tag goal">+${gs.metric === 0 ? roundCal(v) + ' cal' : roundG(v) + ' g ' + gs.unit.replace('g ', '')}</span>`; }
+  let priceTag = '';
+  if (s.id === 'protein') priceTag = `<span class="tag price">${money(it.bowl)} bowl</span>`;
+  else if (it.premium) priceTag = `<span class="tag price">Premium +${money(it.price)}</span>`;
+  const badges = (it.badges || []).map(b => `<span class="tag">${b}</span>`).join('');
+  const al = it.al.length ? `<span class="tag">Contains ${it.al.join(', ')}</span>` : '';
+  let extra = '';
+  if (sel) {
+    const ep = effPortion(line, S.lines);
+    if (ep === 'half') extra = `<div class="halfnote">Half portion · half &amp; half</div>`;
+    else extra = `<div class="portion" role="group" aria-label="Portion for ${it.name}">${s.portions.map(p => {
+      const dc = it.n[0] * (MULT[p] - 1), dp = p === 'double' ? it.dbl : 0;
+      const note = p === 'regular' ? `${roundCal(it.n[0])} cal` : `${dc > 0 ? '+' : '−'}${roundCal(Math.abs(dc))} cal${dp ? ' · +' + money(dp) : ''}`;
+      return `<button data-act="portion" data-id="${it.id}" data-p="${p}" aria-pressed="${line.portion === p}">${PNAME[p]}<small class="num">${note}</small></button>`;
+    }).join('')}</div>`;
+    if (s.id === 'sauces') extra += `<button class="side-t" data-act="side" data-id="${it.id}" aria-pressed="${!!line.onSide}">${line.onSide ? '✓ On the side' : 'Put on the side'}</button>`;
+  }
+  if (S.pending === it.id) extra += `<div class="confirm" role="alert">${it.name}: ${reason.toLowerCase()}. Add anyway?<div><button data-act="cancel">Cancel</button><button class="yes" data-act="force" data-id="${it.id}">Add anyway</button></div></div>`;
+  return `<div class="card ${sel ? 'sel' : ''} ${reason && !sel ? 'dim' : ''} ${it.soldOut ? 'out' : ''} ${S.shake === it.id ? 'shake' : ''}">
+    <button class="card-main" data-act="pick" data-id="${it.id}" data-key="card-${it.id}" aria-pressed="${sel}" ${it.soldOut ? 'aria-disabled="true"' : ''}
+      aria-label="${it.name}, ${roundCal(it.n[0])} calories, ${roundG(it.n[1])} grams protein${it.premium ? ', premium ' + money(it.price) : ''}${it.soldOut ? ', sold out' : ''}${reason ? ', ' + reason : ''}">
+      <span class="thumb">${thumb(it)}${sel ? `<span class="check">${CHECK}</span>` : ''}</span>
+      <span class="nm">${it.name}</span>
+      <span class="meta num"><span>${roundCal(it.n[0])} cal</span><span class="p">${roundG(it.n[1])} g protein</span></span>
+      <span class="tags">${it.soldOut ? '<span class="tag">Sold out</span>' : ''}${priceTag}${goalTag}${badges}${al}</span>
+      ${reason && !sel ? `<span class="reason">${reason}</span>` : ''}
+    </button>
+    ${sel ? `<button class="rm" data-act="remove" data-id="${it.id}" aria-label="Remove ${it.name}">×</button>` : ''}
+    ${extra}
+  </div>`;
+}
+
+function nextInfo() {
+  if (S.screen === 'review') return {label:`Checkout · ${money(price(S.lines))}`, act:'checkout', disabled:false};
+  const s = STEPS[S.step], n = stepLines(s.id).length;
+  if (n < s.min) return {label: s.id === 'base' ? 'Pick a base to continue' : 'Pick a protein to continue', act:'next', disabled:true};
+  if (S.step === STEPS.length - 1) return {label:'Review bowl', act:'review', disabled:false};
+  return {label: n === 0 ? 'Skip' : `Next: ${STEPS[S.step + 1].label}`, act:'next', disabled:false};
+}
+
+function panelView() {
+  const t = totals(S.lines), p = price(S.lines), nx = nextInfo();
+  const fresh = new Set(S.lines.map(l => l.id).filter(id => !prevIds.has(id)));
+  const gst = goalStatus(S.goal, t);
+  const sugs = S.screen === 'build' && gst && !gst.ok ? goalSuggestions(S.lines, S.goal, S.filters) : [];
+  S._sugs = sugs;
+  const DV = [null, 50, 275, 78, 28];
+  const bar = (lab, i, col) => `<div class="bar-row"><span>${lab}</span><span class="track"><i style="width:${Math.min(100, t[i] / DV[i] * 100).toFixed(1)}%;background:${col}"></i></span><span class="v num">${roundG(t[i])} g</span></div>`;
+  return `<aside class="panel ${S.sheetOpen ? 'open' : ''}" aria-label="Your bowl">
+    <div class="sheet-bar">
+      <button class="sum" data-act="sheet" aria-expanded="${S.sheetOpen}"><b class="num">${roundCal(t[0])} cal · ${roundG(t[1])} g protein</b><span class="num">${p == null ? 'Price set by protein' : money(p)} · ${S.sheetOpen ? 'Hide' : 'Show'} bowl details</span></button>
+      <button class="cta" data-act="${nx.act}" ${nx.disabled ? 'disabled' : ''}>${nx.disabled ? 'Next' : nx.act === 'checkout' ? 'Checkout' : nx.act === 'review' ? 'Review' : nx.label.startsWith('Next') ? 'Next' : nx.label}</button>
+    </div>
+    <div class="panel-body">
+      <h2>Your bowl</h2>
+      <div class="bowlwrap">${bowlSVG(S.lines, {fresh})}</div>
+      <div class="totals">
+        <div><div class="big num" data-tween="cal">${roundCal(t[0])}<small>cal</small></div><div class="pline num">${roundG(t[1])} g protein</div></div>
+        <div class="seg" role="group" aria-label="Nutrition detail"><button data-act="view" data-v="simple" aria-pressed="${S.view === 'simple'}">Simple</button><button data-act="view" data-v="full" aria-pressed="${S.view === 'full'}">Full</button></div>
+      </div>
+      ${S.view === 'full' ? `<div class="full">
+        <div class="ring">${ring(t)}</div>
+        <div class="bars">${bar('Protein', 1, 'var(--protein)')}${bar('Carbs', 2, 'var(--carbs)')}${bar('Fat', 3, 'var(--fat)')}${bar('Fiber', 4, 'var(--fiber)')}</div>
+        <div class="extra-rows num"><span>Sugar ${roundG(t[5])} g</span><span>Added sugar ${roundG(t[6])} g</span><span>Sodium ${roundNa(t[7]).toLocaleString()} mg</span></div>
+        <p class="dv-note">Bars show % of the Daily Value on a 2,000-calorie diet.</p>
+      </div>` : ''}
+      ${gst ? `<div class="goalbox ${gst.ok ? 'ok' : ''}"><div class="row"><span>${gst.g.label} · ${gst.g.op === 'min' ? '≥' : '≤'} ${gst.g.target} ${gst.g.unit}</span><span>${gst.text}</span></div><span class="track"><i style="width:${(gst.pct * 100).toFixed(1)}%"></i></span>
+        ${sugs.length ? `<div class="sugg">${sugs.map((sg, i) => `<button data-act="applysug" data-i="${i}">${sg.text}<small class="num">${sg.note}</small></button>`).join('')}</div>` : ''}</div>` : ''}
+      ${S.lines.length ? `<ul class="picked">${S.lines.map(l => { const it = byId[l.id], ep = effPortion(l, S.lines); return `<li><button data-act="gostep" data-i="${STEPS.indexOf(stepOf(it.step))}"><span class="l"><span class="sw-c" style="background:${it.color}"></span>${it.name}</span><span class="r">${ep === 'regular' ? '' : PNAME[ep]}${l.onSide ? ' · side' : ''}</span></button></li>`; }).join('')}</ul>` : '<p class="empty">Tap an ingredient to start filling your bowl.</p>'}
+    </div>
+    <div class="panel-foot">
+      <div class="pricerow"><span>Bowl</span><span class="num">${p == null ? '<small>Price set by protein</small>' : money(p)}</span></div>
+      ${S.screen === 'build' && reqDone() && S.step < STEPS.length - 1 ? `<button class="cta ghost wide" data-act="review">Review bowl</button>` : ''}
+      <button class="cta wide" data-act="${nx.act}" ${nx.disabled ? 'disabled' : ''}>${nx.label}</button>
+    </div>
+  </aside>`;
+}
+
+function buildView() {
+  const s = STEPS[S.step];
+  const items = MENU.filter(m => m.step === s.id).sort((a, b) => (a.soldOut ? 1 : 0) - (b.soldOut ? 1 : 0));
+  return `<div class="builder">
+    <section class="stage wrap">
+      <div class="stage-h"><div><h1>${s.title}</h1><p>${s.sub}</p></div>
+        ${S.filters.length || S.goal ? `<div class="active-filters">${S.goal ? `<span class="badge">${GOALS[S.goal].label}</span>` : ''}${S.filters.map(f => `<span class="badge green">${FILTERS[f]}</span>`).join('')}</div>` : ''}</div>
+      <div class="msg" aria-live="polite">${S.msg ? `<div class="bar">${S.msg}</div>` : ''}</div>
+      <div class="grid" id="grid">${items.map(it => cardView(it, s)).join('')}</div>
+      <div class="navrow"><button class="cta ghost" data-act="back">${S.step === 0 ? 'Start over' : 'Back'}</button></div>
+    </section>
+    ${panelView()}
+  </div>`;
+}
+
+function reviewSuggestion() {
+  if (S.sugDismissed) return null;
+  if (S.goal) { const g = goalSuggestions(S.lines, S.goal, S.filters, 1)[0]; if (g) return g; }
+  const tops = stepLines('toppings');
+  const av = byId['avocado'];
+  if (tops.length < 5 && !tops.some(l => l.id === 'avocado') && !blockReason(av, S.filters))
+    return {text:'Add Avocado', note:`+${roundCal(av.n[0])} cal · +${money(av.price)}`, lines:[...S.lines, {id:'avocado', portion:'regular'}]};
+  return null;
+}
+
+function reviewView() {
+  const t = totals(S.lines), tags = bowlTags(S.lines), al = bowlAllergens(S.lines), sg = reviewSuggestion();
+  S._rsug = sg;
+  const order = l => STEPS.indexOf(stepOf(byId[l.id].step));
+  const rows = [...S.lines].sort((a, b) => order(a) - order(b)).map(l => {
+    const it = byId[l.id], ep = effPortion(l, S.lines), m = MULT[ep], n = it.n.map(v => v * m);
+    return `<tr><td><span class="step">${stepOf(it.step).label}</span>${it.name}</td><td>${PNAME[ep]}${l.onSide ? ', side' : ''}</td><td>${roundCal(n[0])}</td><td>${roundG(n[1])} g</td><td>${roundG(n[2])} g</td><td>${roundG(n[3])} g</td><td>${roundG(n[4])} g</td><td>${roundG(n[5])} g</td><td>${roundNa(n[7])} mg</td></tr>`;
+  }).join('');
+  return `<div class="review">
+    <section class="stage wrap">
+      <div class="stage-h"><div><h1>Review your bowl</h1><p>Everything look right? Tap a step to change it.</p></div></div>
+      <div class="edit-row">${STEPS.map((s, i) => `<button data-act="gostep" data-i="${i}">Edit ${s.label.toLowerCase()}</button>`).join('')}</div>
+      <div class="tablewrap"><table class="nf num">
+        <thead><tr><th>Ingredient</th><th>Portion</th><th>Cal</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th><th>Sugar</th><th>Sodium</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td>Total</td><td></td><td>${roundCal(t[0])}</td><td>${roundG(t[1])} g</td><td>${roundG(t[2])} g</td><td>${roundG(t[3])} g</td><td>${roundG(t[4])} g</td><td>${roundG(t[5])} g</td><td>${roundNa(t[7]).toLocaleString()} mg</td></tr></tfoot>
+      </table></div>
+      <div class="kv"><b>This bowl is</b>${tags.length ? tags.map(f => `<span class="badge green">${FILTERS[f]}</span>`).join('') : '<span class="tag">No diet tags</span>'}</div>
+      <div class="kv"><b>Contains</b>${al.length ? al.map(a => `<span class="tag">${a}</span>`).join('') : '<span class="tag">None of the major allergens</span>'}</div>
+      ${sg ? `<div class="suggest-card"><div><div class="t">${sg.text}</div><div class="s num">${sg.note}</div></div><div class="acts"><button data-act="dismiss">No thanks</button><button class="add" data-act="applyrsug">Add</button></div></div>` : ''}
+      <div class="fine"><p>2,000 calories a day is used for general nutrition advice, but calorie needs vary. Additional nutrition information available upon request.</p><p>Nutrition values are estimates. Bowls are made by hand, so portions may vary.</p><p>Our kitchen handles all major allergens. We can't guarantee any item is free of allergens.</p></div>
+    </section>
+    ${panelView()}
+  </div>`;
+}
+
+function checkoutView() {
+  const sub = price(S.lines), tx = tax(sub);
+  return `<div class="checkout wrap"><div class="box">
+    <h1>Almost done</h1>
+    <div class="dine" role="group" aria-label="Dine in or take out">
+      <button data-act="dining" data-d="dine_in" aria-pressed="${S.dining === 'dine_in'}">Dine in</button>
+      <button data-act="dining" data-d="take_out" aria-pressed="${S.dining === 'take_out'}">Take out</button>
+    </div>
+    <div class="sumrows num"><div><span>Bowl</span><span>${money(sub)}</span></div><div><span>Tax (8%)</span><span>${money(tx)}</span></div><div class="tot"><span>Total</span><span>${money(sub + tx)}</span></div></div>
+    <p style="margin:0;color:var(--muted);font-weight:600">Pay at the counter. Card payment comes later.</p>
+    <div style="display:flex;gap:10px"><button class="cta ghost" data-act="toreview">Back</button><button class="cta" style="flex:1" data-act="place" ${S.dining ? '' : 'disabled'}>${S.dining ? `Place order · ${money(sub + tx)}` : 'Choose dine in or take out'}</button></div>
+  </div></div>`;
+}
+
+function doneView() {
+  const o = S.order;
+  return `<div class="done wrap"><div class="box">
+    <p style="margin:0;font-weight:700;color:var(--muted)">Your order number</p>
+    <div class="ordno num">${o.number}</div>
+    <h1 style="font-size:1.5rem">Pay at the counter</h1>
+    <p style="margin:0;color:var(--muted);font-weight:600">${o.dining === 'dine_in' ? 'Dine in' : 'Take out'} · ${o.cal} cal · ${o.protein} g protein · about 6 min</p>
+    <div style="display:grid;gap:6px"><span style="font-weight:700">Bowl code: reorder this exact bowl next time</span><span class="code">${o.code}</span></div>
+    <button class="cta" data-act="done">Done</button>
+    <p class="fine" style="margin:0" id="donecount">Starting over in 15 seconds</p>
+  </div></div>`;
+}
+
+function a11yPopView() {
+  const t = (k, lab) => `<button class="toggle" data-act="a11yt" data-k="${k}" aria-pressed="${S.a11y[k]}"><span>${lab}</span><span class="sw" aria-hidden="true"></span></button>`;
+  return `<h3>Accessibility</h3>${t('large', 'Larger text')}${t('hc', 'High contrast')}${t('reach', 'Reach mode (controls lower)')}${t('audio', 'Read aloud')}`;
+}
+
+/* ---------- Render ---------- */
+let lastCal = 0;
+function render() {
+  const keep = document.activeElement?.dataset?.key || (document.activeElement?.dataset?.act ? document.activeElement.dataset.act + (document.activeElement.dataset.id || document.activeElement.dataset.i || document.activeElement.dataset.k || document.activeElement.dataset.p || '') : null);
+  const views = {attract:attractView, home:homeView, build:buildView, review:reviewView, checkout:checkoutView, done:doneView};
+  document.getElementById('steps').innerHTML = stepsNav();
+  document.getElementById('screen').innerHTML = views[S.screen]();
+  document.documentElement.classList.toggle('large', S.a11y.large);
+  document.body.classList.toggle('hc', S.a11y.hc);
+  document.body.classList.toggle('reach', S.a11y.reach);
+  const pop = document.getElementById('a11yPop'); pop.hidden = !S.a11yOpen; if (S.a11yOpen) pop.innerHTML = a11yPopView();
+  document.querySelector('.a11y-btn').setAttribute('aria-expanded', S.a11yOpen);
+  if (keep) {
+    const el = [...document.querySelectorAll('[data-key],[data-act]')].find(e => (e.dataset.key || (e.dataset.act + (e.dataset.id || e.dataset.i || e.dataset.k || e.dataset.p || ''))) === keep);
+    if (el && el !== document.activeElement) el.focus({preventScroll:true});
+  }
+  const calEl = document.querySelector('[data-tween="cal"]');
+  if (calEl) { const to = roundCal(totals(S.lines)[0]); tween(calEl, lastCal, to); lastCal = to; }
+  prevIds = new Set(S.lines.map(l => l.id));
+  S.shake = null;
+}
+function tween(el, from, to) {
+  if (from === to || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const t0 = performance.now(), small = el.querySelector('small').outerHTML;
+  const f = now => { const k = Math.min(1, (now - t0) / 250); el.innerHTML = Math.round(from + (to - from) * k) + small; if (k < 1) requestAnimationFrame(f); };
+  requestAnimationFrame(f);
+}
+function say(text) {
+  document.getElementById('live').textContent = text;
+  if (!S.a11y.audio) return;
+  try { speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance(text)); } catch (e) {}
+}
+function summary() { const t = totals(S.lines); return `Bowl now ${roundCal(t[0])} calories, ${roundG(t[1])} grams protein, ${money(price(S.lines))}.`; }
+
+/* ---------- Actions ---------- */
+function addLine(id) {
+  const it = byId[id], s = stepOf(it.step);
+  if (s.id === 'protein') {
+    S.lines = S.lines.filter(l => byId[l.id].step !== 'protein').concat({id, portion:'regular'});
+    clearTimeout(advanceTimer);
+    advanceTimer = setTimeout(() => { if (S.screen === 'build' && STEPS[S.step].id === 'protein') { S.step++; render(); say(STEPS[S.step].title); } }, 400);
+  } else {
+    if (stepLines(s.id).length >= s.max) { S.msg = `Up to ${s.max} ${s.noun}. Remove one to swap.`; S.shake = id; say(S.msg); return; }
+    S.lines.push({id, portion:'regular'});
+  }
+  say(`Added ${it.name}. ${summary()}`);
+}
+const A = {
+  start() { S.screen = 'home'; },
+  build() { S.lines = []; S.step = 0; S.screen = 'build'; S.sugDismissed = false; say(STEPS[0].title); },
+  sig(d) { S.lines = SIGS[+d.i].lines.map(([id, p]) => ({id, portion:p || 'regular'})); S.screen = 'review'; S.sugDismissed = false; say(`${SIGS[+d.i].name}. ${summary()}`); },
+  goal(d) { S.goal = S.goal === d.k ? null : d.k; },
+  filter(d) { S.filters = S.filters.includes(d.k) ? S.filters.filter(f => f !== d.k) : [...S.filters, d.k]; },
+  pick(d) {
+    const it = byId[d.id]; S.msg = null;
+    if (it.soldOut) { S.msg = `${it.name} is sold out right now.`; S.shake = it.id; return; }
+    if (S.lines.some(l => l.id === d.id)) return;
+    if (blockReason(it, S.filters)) { S.pending = d.id; return; }
+    S.pending = null; addLine(d.id);
+  },
+  force(d) { S.pending = null; addLine(d.id); },
+  cancel() { S.pending = null; },
+  portion(d) { S.lines = S.lines.map(l => l.id === d.id ? {...l, portion:d.p} : l); say(`${PNAME[d.p]} ${byId[d.id].name}. ${summary()}`); },
+  remove(d) { S.lines = S.lines.filter(l => l.id !== d.id); S.msg = null; say(`Removed ${byId[d.id].name}. ${summary()}`); },
+  side(d) { S.lines = S.lines.map(l => l.id === d.id ? {...l, onSide:!l.onSide} : l); },
+  next() { if (nextInfo().disabled) return; S.msg = null; S.pending = null; S.step = Math.min(STEPS.length - 1, S.step + 1); say(STEPS[S.step].title); },
+  back() { S.msg = null; S.pending = null; if (S.step === 0) { reset(); S.screen = 'home'; } else S.step--; },
+  gostep(d) { const i = +d.i; S.msg = null; S.pending = null; if (i === 5) { S.screen = 'review'; } else { S.screen = 'build'; S.step = i; } S.sheetOpen = false; },
+  review() { S.screen = 'review'; S.sheetOpen = false; say('Review your bowl. ' + summary()); },
+  toreview() { S.screen = 'review'; },
+  view(d) { S.view = d.v; },
+  sheet() { S.sheetOpen = !S.sheetOpen; },
+  applysug(d) { const sg = S._sugs[+d.i]; if (sg) { S.lines = sg.lines; say(`${sg.text}. ${summary()}`); } },
+  applyrsug() { if (S._rsug) { S.lines = S._rsug.lines; S.sugDismissed = true; say(summary()); } },
+  dismiss() { S.sugDismissed = true; },
+  checkout() { S.screen = 'checkout'; S.sheetOpen = false; },
+  dining(d) { S.dining = d.d; },
+  place() {
+    const t = totals(S.lines);
+    S.order = {number:'A-0' + (20 + Math.floor(Math.random() * 79)), code:makeCode(), dining:S.dining, cal:roundCal(t[0]), protein:roundG(t[1])};
+    S.screen = 'done'; say(`Order ${S.order.number} placed. Pay at the counter.`);
+    let n = 15; clearInterval(doneTimer);
+    doneTimer = setInterval(() => { n--; const el = document.getElementById('donecount'); if (el) el.textContent = `Starting over in ${n} seconds`; if (n <= 0 || S.screen !== 'done') { clearInterval(doneTimer); if (S.screen === 'done') { reset(); render(); } } }, 1000);
+  },
+  done() { reset(); },
+  a11y() { S.a11yOpen = !S.a11yOpen; },
+  a11yt(d) { S.a11y[d.k] = !S.a11y[d.k]; if (d.k === 'audio' && S.a11y.audio) say('Read aloud is on.'); },
+  still() { S.idle = null; closeIdle(); },
+};
+document.addEventListener('click', e => {
+  lastTouch = Date.now();
+  const t = e.target.closest('[data-act]');
+  if (S.a11yOpen && !e.target.closest('#a11yPop') && !e.target.closest('.a11y-btn')) { S.a11yOpen = false; if (!t) { render(); return; } }
+  if (!t || t.disabled || !A[t.dataset.act]) return;
+  A[t.dataset.act](t.dataset);
+  if (t.dataset.act !== 'still') render();
+});
+document.addEventListener('keydown', e => {
+  lastTouch = Date.now();
+  if (e.key === 'Escape') { if (S.a11yOpen) { S.a11yOpen = false; render(); } else if (S.pending) { S.pending = null; render(); } else if (S.sheetOpen) { S.sheetOpen = false; render(); } return; }
+  if (S.screen === 'attract' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); A.start(); render(); return; }
+  if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) return;
+  const cards = [...document.querySelectorAll('#grid .card-main')], i = cards.indexOf(document.activeElement);
+  if (i < 0) return;
+  e.preventDefault();
+  const cols = Math.max(1, Math.round(document.getElementById('grid').clientWidth / cards[0].parentElement.offsetWidth));
+  const step = {ArrowLeft:-1, ArrowRight:1, ArrowUp:-cols, ArrowDown:cols}[e.key];
+  cards[Math.max(0, Math.min(cards.length - 1, i + step))].focus();
+});
+document.addEventListener('focusin', e => { if (S.a11y.audio) { const el = e.target; const txt = el.getAttribute('aria-label') || el.textContent.trim().replace(/\s+/g, ' '); if (txt) { try { speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance(txt)); } catch (err) {} } } });
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+/* ---------- Idle reset: 60 s, then a 15 s "Still there?" ---------- */
+let idleEl = null;
+function closeIdle() { if (idleEl) { idleEl.remove(); idleEl = null; } lastTouch = Date.now(); }
+setInterval(() => {
+  if (S.screen === 'attract' || S.screen === 'done') return;
+  const idle = (Date.now() - lastTouch) / 1000;
+  if (idle >= 60 && !idleEl) {
+    idleEl = document.createElement('div'); idleEl.className = 'overlay';
+    idleEl.innerHTML = `<div class="box" role="alertdialog" aria-label="Still there?"><h1>Still there?</h1><div class="count num" id="idlecount">15</div><p style="margin:0;color:var(--muted);font-weight:600">We'll start over for the next guest.</p><button class="cta" data-act="still">I'm still here</button></div>`;
+    document.body.appendChild(idleEl); idleEl.querySelector('button').focus(); say('Still there? Tap I am still here.');
+  }
+  if (idleEl) {
+    const left = Math.max(0, Math.ceil(75 - idle)); const c = document.getElementById('idlecount'); if (c) c.textContent = left;
+    if (left <= 0) { idleEl.remove(); idleEl = null; reset(); render(); }
+  }
+}, 1000);
+
+render();
+</script>

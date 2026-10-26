@@ -4,7 +4,9 @@ This prompt builds a self-order touchscreen kiosk for a fast-casual bowl restaur
 
 v2 adds what we learned from studying Sweetgreen, CAVA, Chipotle, Toast, Square and kiosk research. See [`RESEARCH.md`](RESEARCH.md) for the findings and sources.
 
-**How to use it:** fill in the "Make it yours" table (or keep the defaults), then paste everything from **START OF PROMPT** to the end into an AI coding tool (Claude Code, Cursor, Lovable, Bolt, v0, etc.) in an empty project folder.
+**How to use it:** fill in the "Make it yours" table (or keep the defaults), then paste everything from **START OF PROMPT** to the end into an AI coding tool (Claude Code, Cursor, Lovable, Bolt, v0, etc.) in an empty project folder. For big builds, run it in phases with [`PHASES.md`](PHASES.md).
+
+**See it first:** [`prototype/index.html`](prototype/index.html) is a clickable prototype of the kiosk built from this spec (same menu, same math). If your tool accepts files, copy it into the project as `reference/prototype.html` so the builder can match its look.
 
 ---
 
@@ -435,6 +437,41 @@ Columns: g = grams, Cal = calories, P = protein g, C = carbs g, F = fat g, Fib =
 - Write `KIOSK_SETUP.md`: running full screen on an iPad (Guided Access, or Single App Mode via MDM), an Android tablet (a kiosk browser or the device's dedicated-device/lock-task mode, ideally managed by an MDM), and Windows (Chrome `--kiosk`); screen brightness and sleep settings; mounting height so every control sits **between 15 and 48 inches (38–122 cm) above the floor**; connecting a USB or Bluetooth keypad and headphones for accessibility (12.2).
 
 ### 12. Design and accessibility
+
+**12.0 Visual design system** (if `reference/prototype.html` exists, match it; branding from Admin overrides these tokens)
+
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `bg` | `#EEF2EA` | `#0E1611` | Page background (a green-tinted paper, not plain white or cream) |
+| `surface` / `surface-2` | `#FFFFFF` / `#E1E8DB` | `#16211A` / `#1E2B23` | Cards, panels / chips, tracks, image wells |
+| `ink` / `muted` / `line` | `#142019` / `#56665B` / `#CBD5C4` | `#E6EEE6` / `#9DB0A3` / `#2C3D32` | Text, secondary text, hairline borders |
+| `primary` (basil) | `#1D5A3C` | `#63C08C` | Main buttons, selected state, progress |
+| `accent` (chili) | `#E0662A` | `#F28A55` | Prices and badges only. Never for errors or "bad" food |
+| `protein` / `carbs` / `fat` / `fiber` | `#2F66C9` / `#C98A12` / `#B9476F` / `#3A8B57` | `#7FA6F0` / `#E7B54A` / `#E07FA1` / `#6CC48D` | Macro colors. The same color for a macro everywhere (text, bars, ring) so customers learn them |
+
+- **Type:** Bricolage Grotesque (headings and the big calorie number), Manrope (everything else), with a system sans-serif fallback. Tabular numbers on every figure so totals don't jitter.
+- **Shape:** 18 px radius on cards, pill-shaped buttons and chips, 1 px hairline borders, shadow only on selected cards and floating panels.
+- **Selected state:** 2 px primary border **plus** a checkmark badge (never color alone).
+- **Ingredient art:** until real photos exist, draw each ingredient as a top-down cluster of shapes in its `color` inside a small dish. The bowl illustration uses the same art, so a card and its bowl contribution look the same.
+- **Themes:** the kiosk defaults to light (bright dining rooms); the kitchen display defaults to dark.
+
+**Landscape builder layout** (1280×800):
+```
++--------------------------------------------------------------------------------+
+| Bowl Lab   (v Base)(v Protein)(3 Veggies)(4 Toppings)(5 Sauce)(6 Review)  [Accessibility] |
++--------------------------------------------------+-----------------------------+
+| Add veggies                       [HIGH PROTEIN] | Your bowl                   |
+| Up to 4, all included.                           |      (top-down bowl art)    |
+| +----------+ +----------+ +----------+ +-------+ | 390 cal      [Simple|Full]  |
+| | dish art | | dish art | | dish art | | ...   | | 27 g protein                |
+| | Broccoli | | Corn     | | Beans    | |       | | ring + protein/carbs/fat/   |
+| | 40 cal   | | 50 cal   | | 80 cal   | |       | |   fiber bars (% Daily Value)|
+| | [L][R][X]| | +2 g pro | | +5 g pro | |       | | Goal: 13 g to go            |
+| +----------+ +----------+ +----------+ +-------+ |  [Make tofu Double +18 g]   |
+|  (grid scrolls; page and panel never move)       | Bowl $10.95                 |
+| [Back]                                           | [Review bowl]  [Next: Top.] |
++--------------------------------------------------+-----------------------------+
+```
 
 **12.1 Visual and touch**
 - Touch targets at least **64 × 64 px** with at least 12 px between them. No hover-only interactions.
