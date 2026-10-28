@@ -12,7 +12,9 @@
 //   --max-runs N         Restart Claude at most N times (default 60).
 //   --retry-wait M       Minutes to wait after a short or failed run (default 15,
 //                        doubling up to 60). Covers usage limits and crashes.
-//   --skip-docker-check  Start even if Docker isn't running (milestones 4+ need it).
+//   --background         Set up, then keep running detached (survives closing the
+//                        terminal or the Claude session that started it). Output
+//                        goes to .autopilot/autopilot.log.
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
@@ -24,14 +26,15 @@ const isWin = process.platform === 'win32';
 
 // ---------- arguments ----------
 const argv = process.argv.slice(2);
-const opt = { mode: 'auto', setupOnly: false, maxRuns: 60, retryWait: 15, skipDocker: false, target: null };
+const opt = { mode: 'auto', setupOnly: false, maxRuns: 60, retryWait: 15, background: false, target: null };
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
   if (a === '--mode') opt.mode = argv[++i];
   else if (a === '--setup-only') opt.setupOnly = true;
   else if (a === '--max-runs') opt.maxRuns = Number(argv[++i]);
   else if (a === '--retry-wait') opt.retryWait = Number(argv[++i]);
-  else if (a === '--skip-docker-check') opt.skipDocker = true;
+  else if (a === '--background') opt.background = true;
+  else if (a === '--skip-docker-check') { /* Docker is optional now; flag kept for compatibility */ }
   else if (!a.startsWith('--') && !opt.target) opt.target = a;
   else fail(`Unknown option: ${a}`);
 }
@@ -53,23 +56,22 @@ say('Bowl Lab autopilot\n');
 const nodeMajor = Number(process.versions.node.split('.')[0]);
 if (nodeMajor < 20) fail(`Node.js 20 or newer is needed (you have ${process.versions.node}).`);
 if (run('git', ['--version']).status !== 0) fail('Git is not installed.');
-if (!opt.skipDocker && run('docker', ['info']).status !== 0) {
-  fail('Docker is not running. Start Docker Desktop, then run this again.\n  (The backend milestones run Supabase locally in Docker.)');
-}
+const hasDocker = run('docker', ['info']).status === 0;
 if (!opt.setupOnly && run(claudeBin, ['--version']).status !== 0) {
   fail('Claude Code is not installed or not on PATH. Install it from https://code.claude.com/docs, run "claude" once to sign in, then run this again.');
 }
 if (opt.mode === 'bypass' && typeof process.getuid === 'function' && process.getuid() === 0) {
   fail('Bypass mode refuses to run as root. Use --mode auto, or run as a normal user inside a container.');
 }
-say('✓ Tools look good');
+say(hasDocker ? '✓ Tools look good' : '✓ Tools look good (Docker not running: the build will use an npm-installed Postgres instead of local Supabase)');
 
 // ---------- project setup (idempotent) ----------
 const copy = (from, to) => fs.cpSync(path.join(kit, from), path.join(target, to), { recursive: true });
 fs.mkdirSync(target, { recursive: true });
 const fresh = !fs.existsSync(path.join(target, 'SPEC.md'));
 if (fresh) {
-  if (fs.readdirSync(target).filter(f => f !== '.git').length) fail(`${target} is not empty. Use a new folder.`);
+  const ignorable = new Set(['.git', '.spec-kit', '.claude', '.autopilot', '.DS_Store']);
+  if (fs.readdirSync(target).filter(f => !ignorable.has(f)).length) fail(`${target} is not empty. Use a new folder.`);
   copy('PROMPT.md', 'SPEC.md');
   for (const d of ['data', 'design', 'database']) copy(d, d);
   copy('prototype/index.html', 'reference/prototype.html');
@@ -77,22 +79,9 @@ if (fresh) {
   copy('autopilot/template/CLAUDE.md', 'CLAUDE.md');
   copy('autopilot/template/PROGRESS.md', 'PROGRESS.md');
   copy('autopilot/template/keep-going.mjs', '.claude/hooks/keep-going.mjs');
-  const allow = ['pnpm', 'npm', 'npx', 'node', 'corepack', 'git', 'supabase', 'docker', 'psql', 'createdb', 'dropdb', 'playwright', 'vitest', 'tsc', 'turbo', 'k6']
-    .map(c => `Bash(${c} *)`);
-  const settings = {
-    permissions: {
-      allow,
-      deny: ['Bash(git push *)', 'Bash(git remote add *)'],
-    },
-    env: { CI: '1' },
-    hooks: {
-      Stop: [{ hooks: [{ type: 'command', command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/keep-going.mjs"', timeout: 30 }] }],
-    },
-  };
-  fs.writeFileSync(path.join(target, '.claude', 'settings.json'), JSON.stringify(settings, null, 2) + '\n');
   fs.writeFileSync(path.join(target, '.gitignore'),
     ['node_modules/', 'dist/', 'build/', 'coverage/', '.turbo/', '.autopilot/', '.env', '.env.*', '!.env.example',
-     'test-results/', 'playwright-report/', 'supabase/.temp/', '.DS_Store', ''].join('\n'));
+     'test-results/', 'playwright-report/', 'supabase/.temp/', '.spec-kit/', '.claude/settings.local.json', '.DS_Store', ''].join('\n'));
   if (!fs.existsSync(path.join(target, '.git'))) run('git', ['init', '-q'], { cwd: target });
   if (!run('git', ['config', 'user.email'], { cwd: target }).stdout.trim()) {
     run('git', ['config', 'user.name', 'Bowl Lab Autopilot'], { cwd: target });
@@ -104,7 +93,47 @@ if (fresh) {
 } else {
   say(`✓ Resuming the project at ${target}`);
 }
+// Project settings: permissions, CI env, and the Stop hook (absolute path, so it
+// works in any shell on any OS). Rewritten on every launch.
+const allow = ['pnpm', 'npm', 'npx', 'node', 'corepack', 'git', 'supabase', 'docker', 'psql', 'createdb', 'dropdb', 'playwright', 'vitest', 'tsc', 'turbo', 'k6']
+  .map(c => `Bash(${c} *)`);
+const settings = {
+  permissions: {
+    allow,
+    deny: ['Bash(git push *)', 'Bash(git remote add *)'],
+  },
+  env: { CI: '1' },
+  hooks: {
+    Stop: [{ hooks: [{ type: 'command', command: `node "${path.join(target, '.claude', 'hooks', 'keep-going.mjs').replace(/\\/g, '/')}"`, timeout: 30 }] }],
+  },
+};
+fs.writeFileSync(path.join(target, '.claude', 'settings.local.json'), JSON.stringify(settings, null, 2) + '\n');   // machine-specific, git-ignored
+fs.copyFileSync(path.join(kit, 'autopilot/template/keep-going.mjs'), path.join(target, '.claude/hooks/keep-going.mjs'));
 if (opt.setupOnly) { say('\nSetup only: not starting Claude.'); process.exit(0); }
+
+// Only one autopilot per project.
+const pidFile = path.join(target, '.autopilot', 'pid');
+fs.mkdirSync(path.dirname(pidFile), { recursive: true });
+const alive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
+const otherPid = Number((() => { try { return fs.readFileSync(pidFile, 'utf8'); } catch { return 0; } })());
+if (otherPid && otherPid !== process.pid && alive(otherPid)) {
+  say(`\nThe autopilot is already running for this project (pid ${otherPid}). Progress: ${path.join(target, 'PROGRESS.md')}`);
+  process.exit(0);
+}
+
+if (opt.background) {
+  const logFile = path.join(target, '.autopilot', 'autopilot.log');
+  const out = fs.openSync(logFile, 'a');
+  const args = process.argv.slice(1).filter(a => a !== '--background');
+  const child = spawn(process.execPath, args, { cwd: process.cwd(), detached: true, stdio: ['ignore', out, out], windowsHide: true });
+  child.unref();
+  say(`\n✓ Autopilot is running in the background (pid ${child.pid}).`);
+  say(`  Progress: ${path.join(target, 'PROGRESS.md')}`);
+  say(`  Log:      ${logFile}`);
+  say('  It keeps going after you close this window. To stop it, end that process; run the same command again to resume.');
+  process.exit(0);
+}
+fs.writeFileSync(pidFile, String(process.pid));
 
 // ---------- supervisor loop ----------
 const statusOf = () => {
@@ -139,7 +168,9 @@ function runClaude(n) {
     const args = ['-p', PROMPT, '--output-format', 'stream-json', '--verbose',
       '--permission-mode', opt.mode === 'bypass' ? 'bypassPermissions' : 'auto'];
     const log = fs.createWriteStream(path.join(logDir, `run-${String(n).padStart(3, '0')}.jsonl`));
-    const child = spawn(claudeBin, args.map(winQuote), { cwd: target, shell: isWin, stdio: ['ignore', 'pipe', 'pipe'] });
+    const env = { ...process.env };
+    delete env.CLAUDECODE;                 // started from inside a Claude Code session is fine
+    const child = spawn(claudeBin, args.map(winQuote), { cwd: target, shell: isWin, env, stdio: ['ignore', 'pipe', 'pipe'] });
     current = child;
     let buf = '';
     child.stdout.on('data', d => {

@@ -47,12 +47,7 @@ This folder holds a complete, research-backed build spec (v3) plus the parts a s
 
 ## Start the build on your computer
 
-**Easiest: autopilot.** Two commands, then walk away. It builds all 8 milestones unattended, restarting itself after crashes or usage limits, until it's done or needs you. Details and requirements are in [`KICKOFF.md`](KICKOFF.md).
-
-```bash
-git clone --depth 1 --branch claude/bowl-kiosk-prompt https://github.com/SeanJerve/idea.git bowl-kit
-node bowl-kit/bowl-builder-kiosk/autopilot/start-build.mjs bowl-lab
-```
+**Easiest:** open Claude Code in a new, empty folder and paste the prompt from [`KICKOFF.md`](KICKOFF.md). It sets everything up and keeps building on its own in the background until the build is done.
 
 The steps below are the manual route.
 
