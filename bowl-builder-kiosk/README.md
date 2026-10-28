@@ -9,7 +9,8 @@ This folder holds a complete, research-backed build spec (v3) plus the parts a s
 | Path | What it is |
 |---|---|
 | [`PROMPT.md`](PROMPT.md) | The build spec (v3). Fill in "Make it yours", then give it to an AI coding tool |
-| [`KICKOFF.md`](KICKOFF.md) | One prompt that sets up a new project and builds all 8 milestones on its own |
+| [`KICKOFF.md`](KICKOFF.md) | How to build everything unattended with the autopilot (or with one pasted prompt) |
+| [`autopilot/`](autopilot/) | The launcher, the Stop hook that keeps Claude going until the build is done, and the standing orders (`CLAUDE.md`) and `PROGRESS.md` it starts from |
 | [`PHASES.md`](PHASES.md) | The same build as 8 separate messages, one per milestone, with checks after each |
 | [`RESEARCH.md`](RESEARCH.md) | Competitors, kiosk UX, accessibility law, labeling rules, trends, modern design and engineering findings, with sources |
 | [`prototype/index.html`](prototype/index.html) | Clickable kiosk prototype (one HTML file). Same menu and math as the spec |
@@ -46,7 +47,14 @@ This folder holds a complete, research-backed build spec (v3) plus the parts a s
 
 ## Start the build on your computer
 
-**Easiest:** open Claude Code in an empty folder and paste the prompt from [`KICKOFF.md`](KICKOFF.md). It copies everything it needs from this repo and builds all 8 milestones on its own. The steps below are the manual route.
+**Easiest: autopilot.** Two commands, then walk away. It builds all 8 milestones unattended, restarting itself after crashes or usage limits, until it's done or needs you. Details and requirements are in [`KICKOFF.md`](KICKOFF.md).
+
+```bash
+git clone --depth 1 --branch claude/bowl-kiosk-prompt https://github.com/SeanJerve/idea.git bowl-kit
+node bowl-kit/bowl-builder-kiosk/autopilot/start-build.mjs bowl-lab
+```
+
+The steps below are the manual route.
 
 
 **You need:**

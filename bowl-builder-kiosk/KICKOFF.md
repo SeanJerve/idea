@@ -1,13 +1,57 @@
-# One Prompt to Build Everything
+# Build It Unattended
 
-Paste the prompt below into a new **Claude Code** session (or Cursor agent) opened in an **empty folder**. It sets itself up from this repo and works through all 8 milestones on its own, committing after each one. Unlike [`PHASES.md`](PHASES.md), you don't send messages one by one.
+Start the build with one command, walk away, and come back to a finished build (or a short list of things only you can do).
 
-**What to expect:**
-- **It's a big build.** Expect many hours of agent work. If the session stops or runs out of room, start a new one with the same prompt. It reads `PROGRESS.md` and picks up where it left off.
-- **It runs fully on your machine.** It uses a local Supabase stack, so no cloud accounts or keys are needed. It does need **Docker** running (for Supabase), plus Node.js 20+ and Git.
-- **Some things only you can do.** It lists these at the end instead of blocking on them: your restaurant details, a hosted Supabase project for going live, Stripe keys, testing on a real tablet, real nutrition data and a legal check.
+## Autopilot (recommended)
+
+```bash
+git clone --depth 1 --branch claude/bowl-kiosk-prompt https://github.com/SeanJerve/idea.git bowl-kit
+node bowl-kit/bowl-builder-kiosk/autopilot/start-build.mjs bowl-lab
+```
+
+That's it. It creates the project in `bowl-lab/` and runs Claude Code on its own through all 8 milestones. The terminal shows what it's doing; you don't need to watch it.
+
+**What it does for you**
+- **Sets up the project:** spec, menu data, design tokens, database and prototype, committed to a new git repo.
+- **Runs Claude Code in auto mode:** it doesn't stop to ask permission, and a built-in safety check reviews each action before it runs.
+- **Doesn't stop early.** A Stop hook prevents Claude from ending its session until all 8 milestones are ticked and `FINAL_REPORT.md` is written, or it's truly blocked.
+- **Survives restarts.** If Claude crashes, loses its network, or hits your plan's usage limit, the autopilot waits (15 minutes, doubling up to an hour) and starts a fresh session. It picks up where it left off using `PROGRESS.md` and the standing orders in `CLAUDE.md`.
+- **Keeps it safe:** it never pushes to GitHub, never creates cloud accounts or resources, and never edits its own rules.
+
+**Before you run it**
+1. **Claude Code installed and signed in.** Run `claude` once and log in. Auto mode needs a plan and model that include it. If it's refused, see "If auto mode isn't available" below.
+2. **Docker Desktop running.** The backend runs Supabase locally in Docker.
+3. **Node.js 20+ and Git.**
+4. **Keep the computer awake and plugged in.** On a Mac: `caffeinate -i node bowl-kit/bowl-builder-kiosk/autopilot/start-build.mjs bowl-lab`. On Windows, set sleep to "Never" while it runs.
+5. **Windows: run it inside WSL** (Ubuntu), with Docker Desktop's WSL integration turned on.
+
+**While it runs**
+- **To see progress:** `bowl-lab/PROGRESS.md`, `git -C bowl-lab log --oneline`, or the terminal output. Full logs are in `bowl-lab/.autopilot/logs/`.
+- **To stop:** Ctrl+C. **To resume:** run the same command again.
+- **How long it takes:** expect many hours, possibly more than a day with usage-limit pauses. It uses your Claude plan's usage.
+
+**When it finishes**
+- **Finished:** it prints "Build complete". Read `bowl-lab/FINAL_REPORT.md`: the acceptance-test table, how to run each app, and your to-do list.
+- **Blocked:** it prints "The build needs you" and points to `PROGRESS.md` → Open issues. Fix what it says, then run the same command to continue.
+
+**What it can't do without you** (the final report lists these with steps)
+- Your restaurant details in "Make it yours" (it uses the defaults).
+- A hosted Supabase project and going live.
+- Stripe keys for card payments.
+- Testing on a real tablet, portrait screen, keypad, headphones and label printer.
+- Real nutrition values.
+- A legal check of accessibility and labeling rules for your location.
+
+**If auto mode isn't available**
+Run it in an isolated container or VM as a normal (non-root) user and add `--mode bypass`, which skips all permission checks. Only do this in an isolated environment.
+
+**Options:** `--setup-only` (create the project without starting Claude), `--max-runs N`, `--retry-wait MINUTES`.
 
 ---
+
+## Without the autopilot: one prompt
+
+If you'd rather paste a prompt into Claude Code (opened in an empty folder), use this. It does the same setup and work, but it can stop when a session ends or hits a limit. If it does, send the same prompt again to continue.
 
 ```
 You are building the Bowl Lab self-order kiosk system from a complete, tested spec. Work autonomously through all 8 milestones without stopping between them.
@@ -17,29 +61,14 @@ You are building the Bowl Lab self-order kiosk system from a complete, tested sp
 2. Get the spec kit:
    git clone --depth 1 --branch claude/bowl-kiosk-prompt https://github.com/SeanJerve/idea.git .spec-kit
 3. From .spec-kit/bowl-builder-kiosk copy:
-   - PROMPT.md → SPEC.md (keep the whole file: the "Make it yours" table and the spec between START OF PROMPT and END OF PROMPT)
+   - PROMPT.md → SPEC.md
    - data/, design/, database/ → same paths here
    - prototype/index.html → reference/prototype.html
    - PHASES.md → docs/PHASES.md
+   - autopilot/template/CLAUDE.md → CLAUDE.md and autopilot/template/PROGRESS.md → PROGRESS.md
    Then delete .spec-kit and add it to .gitignore.
-4. Check tools: node -v (20+), pnpm, git, docker, the Supabase CLI. Install pnpm and the Supabase CLI if missing. If Docker isn't running, say so once, finish milestones 1–3, write the code for 4–8 against the local Supabase stack, and list exactly what to run once Docker is available.
-5. Read SPEC.md completely, then data/seed-menu.json, design/tokens.css, database/README.md and reference/prototype.html.
+4. Read CLAUDE.md and follow it from now on. Then read SPEC.md completely.
 
-## How to work
-- Build milestones 1–8 from SPEC.md §22 in order. docs/PHASES.md has the instruction and the check for each milestone: follow the instruction and run the check yourself.
-- A milestone is finished only when the apps build, every test passes (including the database tests or their pgTAP port), and README.md explains how to run it. Then commit as "Milestone N: <name>" and go straight on to the next one.
-- Keep PROGRESS.md up to date at every commit: status of each milestone, what's done, what's next, open issues. If this is a new or resumed session, read PROGRESS.md first and continue from the first unfinished milestone.
-- Use the local Supabase stack (`supabase start`) for the backend. No hosted project or cloud accounts.
-- Milestone 8: build the PaymentTerminal adapter with a simulator used in tests; the Stripe Terminal implementation reads keys from environment variables and its tests are skipped when keys are absent. Label printing: PDF preview plus a simulated printer.
-- Never invent nutrition or allergen data. Never skip, disable, delete or weaken a failing test; fix the cause.
-- Don't ask questions. Record assumptions in ASSUMPTIONS.md and decisions in docs/adr/. Stop only if truly blocked (for example a required tool can't be installed), and then say exactly what you need.
-
-## Leave these for the owner (list them in the final report; don't block on them)
-- Filling in "Make it yours" in SPEC.md (use the defaults until then)
-- A hosted Supabase project and deployment; Stripe test or live keys
-- Testing on real hardware: tablet, portrait screen, keypad, headphones, label printer
-- Replacing estimated nutrition values with real ones; a legal check of accessibility and menu-labeling rules
-
-## Final report
-When all 8 milestones are done: a table of every SPEC.md §23 acceptance test with pass or fail, how to run each app, the owner's to-do list above with exact steps, and known risks.
+## Then
+Follow CLAUDE.md: work through PROGRESS.md milestone by milestone, commit after each one, and don't stop until all 8 are done and FINAL_REPORT.md is written, or nothing can progress without me.
 ```
