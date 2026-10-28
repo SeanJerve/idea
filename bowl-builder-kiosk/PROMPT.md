@@ -496,7 +496,7 @@ docs/adr/
 - **Derived values** (totals, prices, tags, suggestions) are computed by `packages/core`, never stored.
 
 **9.4 Menu loading and caching**
-- The menu is one JSON document per location (`GET /v1/menu`) with `ETag` = `payload_sha256`, stored in IndexedDB.
+- The menu is one JSON document per location (`GET /v1/menu`) with `ETag` = `payload_sha256`, stored in IndexedDB. **The compiled menu has exactly the shape of `data/seed-menu.json`** and must validate against `data/seed-menu.schema.json`. Publishing compiles the draft tables into that shape. Location prices are already applied, and sold-out items stay in the menu, since availability comes separately. Version metadata travels in headers (`ETag`, `X-Menu-Version`), not in the document. Version 1 in the seeded database is the seed file itself.
 - The service worker precaches app assets and all menu images at the sizes the device needs.
 - Kiosks check for a new menu every 5 minutes and on the `menu` realtime topic, and apply it at the next reset.
 - **Version skew:** menus carry `schema_version`. The app accepts only versions it understands and otherwise keeps the last good menu and reports it in the heartbeat.
@@ -560,7 +560,7 @@ flowchart LR
 
 | Endpoint | Caller | Request | Success | Errors |
 |---|---|---|---|---|
-| `GET /v1/menu` | Device | `If-None-Match` | 200 compiled menu (schema in `packages/schema`), `ETag`; 304 | 401, 403 (revoked) |
+| `GET /v1/menu` | Device | `If-None-Match` | 200 compiled menu (same shape as `data/seed-menu.json`, this location's prices applied), `ETag`, `X-Menu-Version`; 304 | 401, 403 (revoked) |
 | `POST /v1/orders/quote` | Kiosk | Bag, promo code, locale | 200 priced bag: lines, totals, tax, nutrition, warnings | 422 `VALIDATION` (field errors), 409 `ITEM_UNAVAILABLE` (items + swaps) |
 | `POST /v1/orders` | Kiosk | `idempotencyKey`, `menuVersionId`, bag, `diningOption`, `customerName?`, `allergyNote?`, `labelNames`, `locale`, `promoCode?`, `createdOffline`, `offlineNumber?`, `clientCreatedAt` | 201 `{orderId, number, totals, bowlCodes}`; 200 same body with `duplicate: true` on retry | 422, 409 `ITEM_UNAVAILABLE`, 409 `MENU_RETIRED`, 423 `ORDERING_PAUSED`, 429 |
 | `POST /v1/bowl-codes/resolve` | Kiosk | `{code}` | 200 lines + changes since saved | 404, 410 expired, 429 (10/min/device) |

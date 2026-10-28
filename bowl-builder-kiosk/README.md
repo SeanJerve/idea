@@ -43,6 +43,24 @@ This folder holds a complete, research-backed build spec (v3) plus the parts a s
 
 > The seed nutrition values are realistic estimates for development. Replace them with your own recipe-calculated or lab-tested values before using this with real customers.
 
+## Start the build on your computer
+
+**You need:**
+- Git and Node.js 20+.
+- pnpm.
+- Docker Desktop plus the Supabase CLI (for milestone 4).
+- An AI coding tool (Claude Code or Cursor recommended).
+- To run the database tests yourself: PostgreSQL 15+ (on Windows, run the script in WSL or Git Bash).
+
+1. Get the files. They're on the `claude/bowl-kiosk-prompt` branch of this repo, in `bowl-builder-kiosk/`:
+   ```bash
+   git clone --branch claude/bowl-kiosk-prompt https://github.com/SeanJerve/idea.git
+   ```
+2. Make a **new, empty folder or repo** for the app. Don't build inside this repo, which also holds Screen Copilot.
+3. Copy the files in, as listed in [`PHASES.md`](PHASES.md) under "Before you start": `PROMPT.md` → `SPEC.md`, plus `data/`, `design/`, `database/` and `prototype/index.html` → `reference/prototype.html`.
+4. Fill in the "Make it yours" table in `SPEC.md` (or keep the defaults).
+5. Open the new folder in your AI tool and send message 1 from `PHASES.md`.
+
 ## Check it yourself
 
 ```bash
