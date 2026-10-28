@@ -9,7 +9,8 @@ This folder holds a complete, research-backed build spec (v3) plus the parts a s
 | Path | What it is |
 |---|---|
 | [`PROMPT.md`](PROMPT.md) | The build spec (v3). Fill in "Make it yours", then give it to an AI coding tool |
-| [`PHASES.md`](PHASES.md) | The build as 8 messages, one per milestone, with checks after each |
+| [`KICKOFF.md`](KICKOFF.md) | One prompt that sets up a new project and builds all 8 milestones on its own |
+| [`PHASES.md`](PHASES.md) | The same build as 8 separate messages, one per milestone, with checks after each |
 | [`RESEARCH.md`](RESEARCH.md) | Competitors, kiosk UX, accessibility law, labeling rules, trends, modern design and engineering findings, with sources |
 | [`prototype/index.html`](prototype/index.html) | Clickable kiosk prototype (one HTML file). Same menu and math as the spec |
 | [`data/seed-menu.json`](data/seed-menu.json) | Canonical seed menu (28 ingredients, protein cups, drinks, signature bowls), validated by [`seed-menu.schema.json`](data/seed-menu.schema.json) |
@@ -44,6 +45,9 @@ This folder holds a complete, research-backed build spec (v3) plus the parts a s
 > The seed nutrition values are realistic estimates for development. Replace them with your own recipe-calculated or lab-tested values before using this with real customers.
 
 ## Start the build on your computer
+
+**Easiest:** open Claude Code in an empty folder and paste the prompt from [`KICKOFF.md`](KICKOFF.md). It copies everything it needs from this repo and builds all 8 milestones on its own. The steps below are the manual route.
+
 
 **You need:**
 - Git and Node.js 20+.
